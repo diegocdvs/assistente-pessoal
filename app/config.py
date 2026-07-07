@@ -11,8 +11,8 @@ class Settings:
     dry_run: bool = True
     max_emails_per_provider: int = 25
 
-    google_client_secret_name: str = "google-client-secret-json"
-    google_refresh_token_name: str = "google-refresh-token"
+    google_client_secret_name: str = "google-pessoal-client-secret-json"
+    google_refresh_token_name: str = "google-pessoal-refresh-token"
     outlook_secret_name: str = "outlook-oauth-json"
     whatsapp_secret_name: str = "whatsapp-config-json"
 
