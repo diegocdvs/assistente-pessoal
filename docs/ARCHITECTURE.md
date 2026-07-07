@@ -2,82 +2,86 @@
 
 ## Objetivo
 
-Construir um assistente pessoal hospedado no Google Cloud, capaz de processar múltiplas caixas de e-mail, classificar mensagens, detectar eventos, registrar histórico e enviar relatórios.
+Executar uma rotina diaria no Google Cloud para ler emails de multiplas contas, classificar mensagens por regras explicitas e persistir historico no Firestore.
 
-## Princípios
-
-1. O computador local é usado apenas para configuração, desenvolvimento e autorização OAuth inicial.
-2. A execução diária acontece no Google Cloud, sem depender do PC ligado.
-3. O sistema deve aceitar múltiplas contas desde o início.
-4. Ações destrutivas ou arriscadas ficam bloqueadas em modo seguro até validação.
-5. Regras explícitas têm prioridade sobre IA.
-6. IA entra apenas quando regras não forem suficientes.
-
-## Fluxo de execução
+## Fluxo Sprint 1
 
 ```text
-Cloud Scheduler
-  -> Cloud Run Job
-    -> Carrega contas ativas
-    -> Lê Gmail e Outlook por conta
-    -> Classifica e-mails
-    -> Detecta eventos
-    -> Simula ou executa ações
-    -> Salva histórico no Firestore
-    -> Envia relatório por WhatsApp
+Cloud Run Job
+  -> app.main
+  -> DailyJob
+  -> AccountManager
+  -> GmailConnector
+  -> Gmail API
+  -> Rule Classifier
+  -> FirestoreStore
 ```
+
+## Componentes
+
+### AccountManager
+
+`app/core/accounts.py` carrega `config/accounts.yaml`, valida a estrutura e entrega apenas contas habilitadas para o job. Uma nova conta deve exigir somente uma nova entrada YAML, sem alteracao de codigo.
+
+### GmailConnector
+
+`app/connectors/gmail.py` usa:
+
+- `google-api-python-client`;
+- refresh token;
+- Google Secret Manager;
+- secrets derivados de `secret_prefix`.
+
+Durante a execucao, o conector usa escopo `gmail.readonly` e chama somente `messages.list` e `messages.get`.
+
+### Classifier
+
+`app/core/classifier.py` aplica regras deterministicas iniciais:
+
+- seguranca: prioridade critica;
+- financeiro, evento e trabalho: prioridade importante;
+- compra e outros: prioridade informativa;
+- newsletter e promocoes: ruido.
+
+O classificador pode indicar possivel evento, mas a Sprint 1 apenas registra essa informacao.
+
+### FirestoreStore
+
+`app/storage/firestore_store.py` persiste:
+
+- `runs`: resumo da execucao;
+- `processed_emails`: mensagem, classificacao, conta, provedor e acoes observacionais.
 
 ## Multi-contas
 
-Cada caixa de e-mail é tratada como uma conta configurável.
+Cada conta contem:
 
-Exemplos:
+- `id`;
+- `label`;
+- `provider`;
+- `email`;
+- `enabled`;
+- `secret_prefix`;
+- `max_emails`;
+- `calendar.enabled`;
+- `firestore.enabled`;
+- `policies`.
 
-- `pessoal_google`: Gmail pessoal.
-- `profissional_google`: Gmail profissional.
-- `profissional_outlook`: Outlook profissional.
+Providers planejados:
 
-Cada conta possui:
+- `gmail`: implementado na Sprint 1;
+- `outlook`: reservado para sprint futura;
+- Google Calendar, WhatsApp e IA: preparados no desenho, sem execucao mutavel nesta sprint.
 
-- identificador lógico;
-- provedor;
-- endereço de e-mail;
-- segredo OAuth próprio no Secret Manager;
-- regras específicas;
-- política de leitura/marcação.
+## Politica de seguranca
 
-## Coleções Firestore previstas
+A Sprint 1 e somente leitura para email:
 
-```text
-accounts/          Contas conectadas
-rules/             Regras globais e por conta
-runs/              Execuções da rotina
-processed_emails/  Histórico de e-mails processados
-events/            Eventos detectados ou criados
-alerts/            Alertas relevantes
-settings/          Configurações gerais
-```
+- nao marca como lido;
+- nao arquiva;
+- nao apaga;
+- nao altera labels;
+- nao envia email;
+- nao cria eventos.
 
-## Política de segurança
-
-No `DRY_RUN=true`, o sistema pode:
-
-- ler mensagens;
-- classificar;
-- registrar relatório;
-- simular ações.
-
-No `DRY_RUN=true`, o sistema não pode:
-
-- marcar como lido;
-- arquivar;
-- apagar;
-- criar evento;
-- enviar mensagem externa, salvo teste explícito.
-
-## Criticidade
-
-- `critica`: alerta imediato.
-- `importante`: entra no relatório diário.
-- `informativa`: fica registrada.
-- `ruido`: publicidade, newsletter e baixa relevância.
+Acoes retornadas no relatorio sao observacionais, por exemplo destacar alerta critico ou registrar possivel evento para revisao futura.
