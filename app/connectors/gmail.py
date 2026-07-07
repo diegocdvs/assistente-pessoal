@@ -15,7 +15,10 @@ from app.core.models import EmailItem
 
 logger = logging.getLogger(__name__)
 
-GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+GMAIL_SCOPES = [
+    "https://www.googleapis.com/auth/gmail.modify",
+    "https://www.googleapis.com/auth/calendar.events",
+]
 
 
 class GmailConnector:
