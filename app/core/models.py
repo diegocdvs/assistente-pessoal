@@ -25,12 +25,18 @@ class Priority(str, Enum):
 
 @dataclass
 class EmailItem:
+    account_id: str
+    account_email: str
     provider: str
     id: str
+    thread_id: str | None
     subject: str
     sender: str
+    recipients: list[str]
     snippet: str
     received_at: str | None = None
+    labels: list[str] | None = None
+    raw_headers: dict[str, str] | None = None
 
 
 @dataclass
@@ -47,9 +53,11 @@ class ProcessedEmail:
     email: EmailItem
     classification: Classification
     actions: list[str]
+    run_id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "run_id": self.run_id,
             "email": asdict(self.email),
             "classification": {
                 "category": self.classification.category.value,

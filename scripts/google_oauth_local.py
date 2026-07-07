@@ -10,8 +10,7 @@ from pathlib import Path
 from google_auth_oauthlib.flow import InstalledAppFlow
 
 SCOPES = [
-    "https://www.googleapis.com/auth/gmail.modify",
-    "https://www.googleapis.com/auth/calendar.events",
+    "https://www.googleapis.com/auth/gmail.readonly",
 ]
 
 
@@ -26,7 +25,7 @@ def resolve_gcloud() -> str:
     for candidate in candidates:
         if candidate and Path(candidate).exists():
             return candidate
-    raise FileNotFoundError("gcloud não encontrado. Abra o terminal 'Google Cloud SDK Shell' ou adicione gcloud ao PATH.")
+    raise FileNotFoundError("gcloud nao encontrado. Abra o terminal 'Google Cloud SDK Shell' ou adicione gcloud ao PATH.")
 
 
 def run_command(args: list[str]) -> subprocess.CompletedProcess[str]:
@@ -70,20 +69,20 @@ def main() -> None:
 
     client_secret_path = Path(args.client_secret_file)
     if not client_secret_path.exists():
-        raise FileNotFoundError(f"Arquivo não encontrado: {client_secret_path}")
+        raise FileNotFoundError(f"Arquivo nao encontrado: {client_secret_path}")
 
     flow = InstalledAppFlow.from_client_secrets_file(str(client_secret_path), scopes=SCOPES)
     creds = flow.run_local_server(port=0, prompt="consent", access_type="offline")
 
     if not creds.refresh_token:
-        raise RuntimeError("Refresh token não gerado. Revogue consentimentos antigos e rode novamente.")
+        raise RuntimeError("Refresh token nao gerado. Revogue consentimentos antigos e rode novamente.")
 
     print("\nGOOGLE_REFRESH_TOKEN=")
     print(creds.refresh_token)
 
     answer = input("\nSalvar automaticamente no Google Secret Manager? [S/N]: ").strip().lower()
     if answer not in {"s", "sim", "y", "yes"}:
-        print("OK. Token não salvo automaticamente.")
+        print("OK. Token nao salvo automaticamente.")
         return
 
     client_secret_json = client_secret_path.read_text(encoding="utf-8")

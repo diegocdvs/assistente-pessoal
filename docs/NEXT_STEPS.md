@@ -1,75 +1,37 @@
-# Próximos passos
+# Proximos passos
 
-## 1. Atualizar o repositório local
+## Validacao operacional
 
-No Windows, dentro da pasta do projeto:
-
-```cmd
-git pull
-```
-
-## 2. Instalar dependências
-
-```cmd
-.venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-## 3. Gerar refresh token Google localmente
-
-Coloque o arquivo OAuth baixado do Google Cloud na raiz do projeto com o nome:
+1. Confirmar que cada conta habilitada em `config/accounts.yaml` possui secrets:
 
 ```text
-client_secret.json
+<secret_prefix>-client-secret-json
+<secret_prefix>-refresh-token
 ```
 
-Depois rode:
+2. Executar o Cloud Run Job e verificar:
 
-```cmd
-python scripts/google_oauth_local.py --client-secret-file client_secret.json
-```
+- documentos novos em `runs`;
+- documentos em `processed_emails`;
+- ausencia de alteracoes na caixa Gmail.
 
-Copie o `GOOGLE_REFRESH_TOKEN` gerado, sem enviar em chats.
+## Sprint 2 sugerida
 
-## 4. Salvar secrets no Google Secret Manager
+- Implementar conector Outlook.
+- Adicionar deteccao estruturada de eventos sem criar eventos automaticamente.
+- Criar relatorio consolidado por conta.
+- Adicionar metricas de execucao e alarmes.
+- Preparar camada de IA como fallback quando regras nao classificarem bem.
+- Evoluir politicas por conta sem permitir mutacoes por padrao.
 
-No Windows, com Google Cloud CLI autenticado e apontando para o projeto:
+## Operacao
 
-```cmd
-gcloud config set project agenda-pessoal-projeto
-```
+Comandos existentes:
 
-Salve o JSON do client:
-
-```cmd
-gcloud secrets create google-pessoal-client-secret-json --data-file=client_secret.json
-```
-
-Salve o refresh token em arquivo temporário:
-
-```cmd
-echo COLE_O_REFRESH_TOKEN_AQUI> refresh_token.txt
-gcloud secrets create google-pessoal-refresh-token --data-file=refresh_token.txt
-del refresh_token.txt
-```
-
-## 5. Deploy inicial
-
-```cmd
+```bash
 make deploy
-```
-
-Se `make` não estiver disponível no Windows, usaremos os comandos `gcloud` equivalentes.
-
-## 6. Teste manual do job
-
-```cmd
 make run-job
+make list-jobs
 ```
 
-## 7. Depois
-
-- Ligar Gmail real no conector.
-- Criar app Microsoft Entra para Outlook.
-- Configurar WhatsApp Cloud API.
-- Criar Scheduler diário.
+O Makefile e a infraestrutura GCP permanecem como fonte operacional atual.

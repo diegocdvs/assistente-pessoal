@@ -1,81 +1,125 @@
 # Assistente Pessoal
 
-Projeto para rotina diária de triagem de Gmail/Outlook, criação segura de eventos na Google Agenda, histórico no Firestore e envio futuro de relatório por WhatsApp.
+Assistente pessoal executado como Cloud Run Job para ler caixas Gmail configuradas, classificar mensagens por regras e persistir o resultado no Firestore.
 
-## Estado atual
+## Sprint 1
 
-MVP em **modo seguro** (`DRY_RUN=true`). Nesta fase o sistema lê/classifica/simula ações, mas não marca e-mails como lidos nem cria eventos.
+Implementado:
 
-## Arquitetura
+- AccountManager baseado em `config/accounts.yaml`.
+- Suporte nativo a multiplas contas habilitadas.
+- Gmail Connector com `google-api-python-client`, refresh token e Google Secret Manager.
+- Leitura dos emails recentes sem marcar como lido e sem modificar a caixa.
+- Persistencia de execucoes em `runs` e mensagens processadas em `processed_emails`.
+- Classificador inicial por regras para seguranca, financeiro, eventos, trabalho, compras, newsletters, promocoes e outros.
+- Testes unitarios para contas, classificador, Gmail, job e Firestore.
 
-```text
-Cloud Scheduler -> Cloud Run Job -> Gmail / Outlook / Calendar / Firestore / WhatsApp
-```
-
-Camadas:
-
-- `app/connectors`: Gmail, Outlook, Google Calendar, WhatsApp.
-- `app/core`: regras, classificador, contas e rotina diária.
-- `app/storage`: Firestore.
-- `scripts/google_oauth_local.py`: fluxo local para gerar refresh token Google.
-
-## Nomes padronizados para a conta Google pessoal
-
-A primeira conta Google usa estes nomes:
+## Fluxo
 
 ```text
-google-pessoal-client-secret-json
-google-pessoal-refresh-token
+Cloud Run Job
+  -> AccountManager
+  -> GmailConnector
+  -> Gmail
+  -> Classifier
+  -> Firestore
 ```
 
-Para uma futura conta profissional, manteremos o mesmo padrão:
+## Configuracao de contas
+
+As contas ficam em `config/accounts.yaml`. Para adicionar uma nova conta Gmail, inclua uma entrada:
+
+```yaml
+accounts:
+  - id: pessoal_google
+    label: Pessoal
+    provider: gmail
+    email: pessoa@example.com
+    enabled: true
+    secret_prefix: google-pessoal
+    max_emails: 10
+    calendar:
+      enabled: false
+    firestore:
+      enabled: true
+    policies:
+      dry_run: true
+      mark_read_categories: []
+      never_mark_read_priorities:
+        - critica
+        - importante
+```
+
+O codigo nao depende de nenhuma conta especifica. Os secrets sao resolvidos por `secret_prefix`:
 
 ```text
-google-profissional-client-secret-json
-google-profissional-refresh-token
+<secret_prefix>-client-secret-json
+<secret_prefix>-refresh-token
 ```
 
-Assim o sistema pode tratar múltiplos Gmails sem alterar código estrutural.
+## Gmail e seguranca
+
+O conector Gmail usa `gmail.readonly` durante a execucao do job. Ele chama apenas endpoints de listagem/leitura (`messages.list` e `messages.get`), portanto:
+
+- nunca marca emails como lidos;
+- nunca arquiva;
+- nunca apaga;
+- nunca altera labels;
+- nunca envia mensagens.
+
+## Firestore
+
+Colecoes usadas:
+
+```text
+runs/              resumo de cada execucao
+processed_emails/  mensagem, classificacao e acoes observacionais
+```
+
+O ID de `processed_emails` combina `account_id`, `provider` e `message_id`, evitando duplicacao simples em reprocessamentos.
 
 ## Bootstrap Google local
 
-Rode no Windows, dentro do repositório clonado:
+No Windows, dentro do repositorio:
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-python scripts/google_oauth_local.py --client-secret-file client_secret.json
+python scripts/google_oauth_local.py --client-secret-file client_secret.json --secret-prefix google-pessoal
 ```
 
-O script abre o navegador, autoriza os escopos `gmail.modify` e `calendar.events`, gera o refresh token e pode salvar no Secret Manager.
-
-## Deploy manual inicial
-
-O projeto usa **Cloud Run Jobs**, não Cloud Run Services. Portanto os comandos corretos usam `gcloud run jobs`.
+Tambem e possivel salvar tokens com:
 
 ```bash
-gcloud config set project agenda-pessoal-projeto
-gcloud config set run/region southamerica-east1
-gcloud artifacts repositories create assistente-pessoal --repository-format=docker --location=southamerica-east1 2>/dev/null || true
-gcloud builds submit --tag southamerica-east1-docker.pkg.dev/agenda-pessoal-projeto/assistente-pessoal/app:latest
-gcloud run jobs create assistente-pessoal-diario \
-  --image southamerica-east1-docker.pkg.dev/agenda-pessoal-projeto/assistente-pessoal/app:latest \
-  --region southamerica-east1 \
-  --service-account assistente-pessoal-runner@agenda-pessoal-projeto.iam.gserviceaccount.com \
-  --set-env-vars PROJECT_ID=agenda-pessoal-projeto,REGION=southamerica-east1,DRY_RUN=true,GOOGLE_CLIENT_SECRET_NAME=google-pessoal-client-secret-json,GOOGLE_REFRESH_TOKEN_NAME=google-pessoal-refresh-token
+SECRET_PREFIX=google-pessoal GOOGLE_REFRESH_TOKEN=... scripts/save_google_tokens.sh
 ```
 
-Se o job já existir, use `gcloud run jobs update` com os mesmos parâmetros.
+## Execucao local
 
-## Comandos úteis
+```bash
+pip install -r requirements.txt
+PROJECT_ID=agenda-pessoal-projeto python -m app.main
+```
+
+Para usar outro arquivo de contas:
+
+```bash
+ACCOUNTS_CONFIG_PATH=config/accounts.yaml PROJECT_ID=agenda-pessoal-projeto python -m app.main
+```
+
+## Testes
+
+```bash
+python -m pytest
+```
+
+## Deploy
+
+A infraestrutura existente usa Cloud Run Jobs. Os comandos atuais continuam no `Makefile`:
 
 ```bash
 make deploy
 make run-job
 make list-jobs
 ```
-
-## Scheduler
-
-Será criado depois do primeiro deploy validado.
