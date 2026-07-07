@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import argparse
-import getpass
+import os
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -14,29 +15,48 @@ SCOPES = [
 ]
 
 
-def run_gcloud(args: list[str], input_text: str | None = None) -> None:
-    subprocess.run(args, input=input_text, text=True, check=True)
+def resolve_gcloud() -> str:
+    candidates = [
+        shutil.which("gcloud"),
+        shutil.which("gcloud.cmd"),
+        r"C:\Users\Diego\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd",
+        r"C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd",
+        r"C:\Program Files\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd",
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return candidate
+    raise FileNotFoundError("gcloud não encontrado. Abra o terminal 'Google Cloud SDK Shell' ou adicione gcloud ao PATH.")
+
+
+def run_command(args: list[str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(args, text=True)
 
 
 def save_secret(project_id: str, secret_name: str, value: str) -> None:
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as temp:
+    gcloud = resolve_gcloud()
+
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, suffix=".txt") as temp:
         temp.write(value)
         temp_path = Path(temp.name)
 
     try:
         create_cmd = [
-            "gcloud", "secrets", "create", secret_name,
+            gcloud, "secrets", "create", secret_name,
             "--project", project_id,
             f"--data-file={temp_path}",
         ]
         add_version_cmd = [
-            "gcloud", "secrets", "versions", "add", secret_name,
+            gcloud, "secrets", "versions", "add", secret_name,
             "--project", project_id,
             f"--data-file={temp_path}",
         ]
-        result = subprocess.run(create_cmd, text=True)
+
+        result = run_command(create_cmd)
         if result.returncode != 0:
-            run_gcloud(add_version_cmd)
+            result = run_command(add_version_cmd)
+        if result.returncode != 0:
+            raise RuntimeError(f"Falha ao salvar secret: {secret_name}")
     finally:
         temp_path.unlink(missing_ok=True)
 
