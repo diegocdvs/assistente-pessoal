@@ -1,48 +1,57 @@
-# Exemplo de configuração multi-contas.
-# Não coloque tokens neste arquivo. Tokens ficam no Google Secret Manager.
+# Exemplo de configuracao multi-contas.
+# Nao coloque tokens neste arquivo. Tokens ficam no Google Secret Manager.
 
 accounts:
   - id: pessoal_google
+    label: Pessoal
     provider: gmail
-    email: diegocdvs13@gmail.com
+    email: pessoa@example.com
     enabled: true
     secret_prefix: google-pessoal
     max_emails: 25
+    calendar:
+      enabled: false
+    firestore:
+      enabled: true
     policies:
       dry_run: true
-      mark_read_categories:
-        - promocoes
-        - newsletter
+      mark_read_categories: []
       never_mark_read_priorities:
         - critica
         - importante
 
   - id: profissional_google
+    label: Profissional
     provider: gmail
-    email: seu-email-profissional@gmail.com
+    email: profissional@example.com
     enabled: false
     secret_prefix: google-profissional
     max_emails: 25
+    calendar:
+      enabled: false
+    firestore:
+      enabled: true
     policies:
       dry_run: true
-      mark_read_categories:
-        - promocoes
-        - newsletter
+      mark_read_categories: []
       never_mark_read_priorities:
         - critica
         - importante
 
   - id: profissional_outlook
+    label: Outlook Profissional
     provider: outlook
-    email: seu-email-profissional@empresa.com
+    email: profissional@empresa.com
     enabled: false
     secret_prefix: outlook-profissional
     max_emails: 25
+    calendar:
+      enabled: false
+    firestore:
+      enabled: true
     policies:
       dry_run: true
-      mark_read_categories:
-        - promocoes
-        - newsletter
+      mark_read_categories: []
       never_mark_read_priorities:
         - critica
         - importante
