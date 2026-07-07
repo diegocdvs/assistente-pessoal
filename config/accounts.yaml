@@ -1,0 +1,60 @@
+accounts:
+  - id: pessoal_google
+    label: Pessoal
+    provider: gmail
+    email: diegocdvs13@gmail.com
+    enabled: true
+    secret_prefix: google-pessoal
+    max_emails: 10
+    calendar:
+      enabled: true
+    firestore:
+      enabled: true
+    policies:
+      dry_run: true
+      mark_read_categories:
+        - promocoes
+        - newsletter
+      never_mark_read_priorities:
+        - critica
+        - importante
+
+  - id: profissional_google
+    label: Profissional
+    provider: gmail
+    email: seu-email-profissional@gmail.com
+    enabled: false
+    secret_prefix: google-profissional
+    max_emails: 10
+    calendar:
+      enabled: true
+    firestore:
+      enabled: true
+    policies:
+      dry_run: true
+      mark_read_categories:
+        - promocoes
+        - newsletter
+      never_mark_read_priorities:
+        - critica
+        - importante
+
+  - id: empresa_x_google
+    label: Empresa X
+    provider: gmail
+    email: conta@empresa.com
+    enabled: false
+    secret_prefix: google-empresa-x
+    max_emails: 10
+    calendar:
+      enabled: true
+    firestore:
+      enabled: true
+    policies:
+      dry_run: true
+      mark_read_categories:
+        - promocoes
+        - newsletter
+      never_mark_read_priorities:
+        - critica
+        - importante
