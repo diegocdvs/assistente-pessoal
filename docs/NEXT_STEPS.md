@@ -17,11 +17,11 @@
 
 ## Sprint 2 sugerida
 
-- Implementar conector Outlook.
-- Adicionar deteccao estruturada de eventos sem criar eventos automaticamente.
-- Criar relatorio consolidado por conta.
+- Implementar conector Outlook retornando `EmailEntity`.
+- Adicionar deteccao estruturada de eventos usando a camada `Automation Planner`.
+- Criar persistencia de historico de mudanca de classificacao quando houver reclassificacao relevante.
 - Adicionar metricas de execucao e alarmes.
-- Preparar camada de IA como fallback quando regras nao classificarem bem.
+- Preparar camada de IA como fallback do `Classifier` quando regras nao classificarem bem.
 - Evoluir politicas por conta sem permitir mutacoes por padrao.
 
 ## Operacao
