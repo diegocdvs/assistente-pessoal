@@ -4,13 +4,23 @@ IMAGE ?= $(REGION)-docker.pkg.dev/$(PROJECT_ID)/assistente-pessoal/app:latest
 JOB_NAME ?= assistente-pessoal-diario
 SERVICE_ACCOUNT ?= assistente-pessoal-runner@$(PROJECT_ID).iam.gserviceaccount.com
 
-.PHONY: install google-token deploy run-job list-jobs
+.PHONY: install google-token validate doctor smoke deploy run-job list-jobs
 
 install:
 	python -m pip install -r requirements.txt
 
 google-token:
 	python scripts/google_oauth_local.py --client-secret-file client_secret.json
+
+validate:
+	python -m pytest
+	python -m compileall app scripts
+
+doctor:
+	python scripts/doctor.py --project-id $(PROJECT_ID) --region $(REGION) --job-name $(JOB_NAME)
+
+smoke:
+	python scripts/smoke.py --project-id $(PROJECT_ID) --region $(REGION) --job-name $(JOB_NAME)
 
 deploy:
 	gcloud config set project $(PROJECT_ID)

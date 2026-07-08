@@ -135,6 +135,37 @@ Secrets esperados:
 python -m pytest
 ```
 
+Validacao completa:
+
+```bash
+make validate
+```
+
+O comando executa:
+
+```bash
+python -m pytest
+python -m compileall app scripts
+```
+
+## Diagnostico
+
+Use `make doctor` para validar ambiente, projeto GCP, APIs, secrets e Cloud Run Job:
+
+```bash
+make doctor
+```
+
+A saida usa:
+
+```text
+[OK]
+[WARN]
+[ERROR]
+```
+
+O comando falha se encontrar erros de configuracao obrigatoria.
+
 ## Validacao operacional
 
 Depois do merge:
@@ -143,6 +174,14 @@ Depois do merge:
 make deploy
 make run-job
 ```
+
+Smoke test:
+
+```bash
+make smoke
+```
+
+O smoke executa o job, identifica a execucao, le logs, falha em erros conhecidos e valida o report final. Ele tambem tenta conferir Firestore quando as credenciais locais permitem.
 
 Verifique no Firestore:
 
