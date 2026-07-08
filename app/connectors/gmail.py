@@ -11,7 +11,7 @@ from googleapiclient.discovery import build
 
 from app.connectors.secrets import SecretReader
 from app.core.accounts import MailAccount
-from app.core.models import EmailItem
+from app.core.models import EmailEntity
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class GmailConnector:
         self.project_id = project_id
         self.secret_reader = secret_reader or SecretReader(project_id)
 
-    def fetch_recent(self, account: MailAccount) -> list[EmailItem]:
+    def fetch_recent(self, account: MailAccount) -> list[EmailEntity]:
         service = self._build_service(account)
         response = service.users().messages().list(
             userId="me",
@@ -34,7 +34,7 @@ class GmailConnector:
         messages = response.get("messages", [])
         logger.info("Gmail retornou %s mensagens para conta %s", len(messages), account.id)
 
-        emails: list[EmailItem] = []
+        emails: list[EmailEntity] = []
         for message in messages:
             payload = service.users().messages().get(
                 userId="me",
@@ -42,7 +42,7 @@ class GmailConnector:
                 format="metadata",
                 metadataHeaders=["From", "To", "Cc", "Subject", "Date"],
             ).execute()
-            emails.append(self._to_email_item(account, payload))
+            emails.append(self._to_email_entity(account, payload))
         return emails
 
     def _build_service(self, account: MailAccount) -> Any:
@@ -60,7 +60,7 @@ class GmailConnector:
         )
         return build("gmail", "v1", credentials=creds, cache_discovery=False)
 
-    def _to_email_item(self, account: MailAccount, payload: dict[str, Any]) -> EmailItem:
+    def _to_email_entity(self, account: MailAccount, payload: dict[str, Any]) -> EmailEntity:
         headers = {
             header["name"].lower(): _decode_header_value(header.get("value", ""))
             for header in payload.get("payload", {}).get("headers", [])
@@ -71,19 +71,24 @@ class GmailConnector:
             if value
         ]
 
-        return EmailItem(
+        return EmailEntity(
+            id=payload["id"],
+            provider=account.provider,
             account_id=account.id,
             account_email=account.email,
-            provider=account.provider,
-            id=payload["id"],
             thread_id=payload.get("threadId"),
             subject=headers.get("subject", "(sem assunto)"),
             sender=headers.get("from", ""),
             recipients=recipients,
             snippet=payload.get("snippet", ""),
-            received_at=_received_at(headers.get("date"), payload.get("internalDate")),
             labels=payload.get("labelIds", []),
+            received_at=_received_at(headers.get("date"), payload.get("internalDate")),
             raw_headers=headers,
+            metadata={
+                "gmail_internal_date": payload.get("internalDate"),
+                "gmail_history_id": payload.get("historyId"),
+                "gmail_size_estimate": payload.get("sizeEstimate"),
+            },
         )
 
 
