@@ -15,8 +15,12 @@ from app.core.models import EmailEntity
 
 logger = logging.getLogger(__name__)
 
+# The current production refresh token was generated with these scopes.
+# The application still behaves as read-only while DRY_RUN=true; do not narrow
+# this list without rotating the stored refresh token.
 GMAIL_SCOPES = [
-    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.modify",
+    "https://www.googleapis.com/auth/calendar.events",
 ]
 
 
