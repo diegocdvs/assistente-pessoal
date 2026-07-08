@@ -1,33 +1,113 @@
 # Assistente Pessoal
 
-Assistente pessoal executado como Cloud Run Job para ler caixas Gmail configuradas, classificar mensagens por regras e persistir o resultado no Firestore.
+Assistente pessoal executado como Cloud Run Job para ler contas configuradas, normalizar mensagens, classificar, persistir, planejar acoes seguras e gerar relatorio final.
 
-## Sprint 1
+## Sprint 1.5
 
-Implementado:
-
-- AccountManager baseado em `config/accounts.yaml`.
-- Suporte nativo a multiplas contas habilitadas.
-- Gmail Connector com `google-api-python-client`, refresh token e Google Secret Manager.
-- Leitura dos emails recentes sem marcar como lido e sem modificar a caixa.
-- Persistencia de execucoes em `runs` e mensagens processadas em `processed_emails`.
-- Classificador inicial por regras para seguranca, financeiro, eventos, trabalho, compras, newsletters, promocoes e outros.
-- Testes unitarios para contas, classificador, Gmail, job e Firestore.
-
-## Fluxo
+A base foi consolidada em um pipeline desacoplado:
 
 ```text
-Cloud Run Job
-  -> AccountManager
-  -> GmailConnector
-  -> Gmail
+Connector
+  -> EmailEntity
   -> Classifier
-  -> Firestore
+  -> Persistence
+  -> Automation
+  -> Report
 ```
+
+O `DailyJob` orquestra o fluxo e depende de abstracoes:
+
+- `ConnectorManager`
+- `Classifier`
+- `Persistence`
+- `AutomationPlanner`
+- `Reporter`
+
+Ele nao instancia `GmailConnector` diretamente.
+
+## Camadas
+
+- `app/connectors/gmail.py`: conector Gmail read-only que retorna `EmailEntity`.
+- `app/connectors/manager.py`: registra conectores por provider. Hoje registra `gmail`; a estrutura esta pronta para `outlook`, `calendar` e `whatsapp`.
+- `app/core/models.py`: `EmailEntity`, `WorkItem`, `Classification`, `ActionPlan` e `PipelineResult`.
+- `app/core/classifier.py`: classificador por regras com categoria, prioridade, confianca, motivo e `possible_event`.
+- `app/storage/persistence.py`: persistencia Firestore com upsert/deduplicacao.
+- `app/core/automation.py`: gera `ActionPlan` em `dry_run`, sem executar acoes reais.
+- `app/core/report.py`: consolida totais e tempo de execucao.
+
+## Modelos
+
+`EmailEntity`:
+
+```text
+id, provider, account_id, account_email, thread_id, subject, sender,
+recipients, snippet, labels, received_at, raw_headers, metadata
+```
+
+`WorkItem`:
+
+```text
+id, source, type, account_id, payload, created_at
+```
+
+`ActionPlan`:
+
+```text
+type, reason, dry_run, status, payload
+```
+
+## Classificacao
+
+Categorias:
+
+```text
+financeiro, compra, entrega, evento, trabalho, seguranca, promocao,
+newsletter, social, educacao, viagem, saude, sistema, outros
+```
+
+Prioridades:
+
+```text
+critica, alta, normal, baixa, ruido
+```
+
+Regras importantes:
+
+- promocao com `24h`, `oferta`, `desconto` ou percentual nao vira evento;
+- tutorial nao vira evento;
+- newsletter nao vira evento;
+- ofertas de emprego viram `trabalho` com prioridade `normal`, salvo entrevista, convite, prazo ou resposta direta;
+- recibo/compra vai para `compra` ou `financeiro`, nao para evento.
+
+## Firestore
+
+Estrutura:
+
+```text
+runs/{run_id}
+accounts/{account_id}/emails/{message_id}
+accounts/{account_id}/classifications/{message_id}
+accounts/{account_id}/action_plans/{message_id}
+```
+
+A persistencia usa merge/upsert. Emails existentes atualizam `last_seen_at`; emails novos recebem `first_seen_at`. Isso evita duplicacao por `message_id`.
+
+## Seguranca
+
+`DRY_RUN=true` permanece como regra operacional. O job nao:
+
+- marca lido;
+- move mensagens;
+- exclui mensagens;
+- cria eventos;
+- envia WhatsApp;
+- executa automacoes externas.
+
+O GmailConnector usa `gmail.readonly`.
 
 ## Configuracao de contas
 
-As contas ficam em `config/accounts.yaml`. Para adicionar uma nova conta Gmail, inclua uma entrada:
+As contas ficam em `config/accounts.yaml`. Para adicionar uma conta Gmail:
 
 ```yaml
 accounts:
@@ -38,74 +118,15 @@ accounts:
     enabled: true
     secret_prefix: google-pessoal
     max_emails: 10
-    calendar:
-      enabled: false
     firestore:
       enabled: true
-    policies:
-      dry_run: true
-      mark_read_categories: []
-      never_mark_read_priorities:
-        - critica
-        - importante
 ```
 
-O codigo nao depende de nenhuma conta especifica. Os secrets sao resolvidos por `secret_prefix`:
+Secrets esperados:
 
 ```text
 <secret_prefix>-client-secret-json
 <secret_prefix>-refresh-token
-```
-
-## Gmail e seguranca
-
-O conector Gmail usa `gmail.readonly` durante a execucao do job. Ele chama apenas endpoints de listagem/leitura (`messages.list` e `messages.get`), portanto:
-
-- nunca marca emails como lidos;
-- nunca arquiva;
-- nunca apaga;
-- nunca altera labels;
-- nunca envia mensagens.
-
-## Firestore
-
-Colecoes usadas:
-
-```text
-runs/              resumo de cada execucao
-processed_emails/  mensagem, classificacao e acoes observacionais
-```
-
-O ID de `processed_emails` combina `account_id`, `provider` e `message_id`, evitando duplicacao simples em reprocessamentos.
-
-## Bootstrap Google local
-
-No Windows, dentro do repositorio:
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python scripts/google_oauth_local.py --client-secret-file client_secret.json --secret-prefix google-pessoal
-```
-
-Tambem e possivel salvar tokens com:
-
-```bash
-SECRET_PREFIX=google-pessoal GOOGLE_REFRESH_TOKEN=... scripts/save_google_tokens.sh
-```
-
-## Execucao local
-
-```bash
-pip install -r requirements.txt
-PROJECT_ID=agenda-pessoal-projeto python -m app.main
-```
-
-Para usar outro arquivo de contas:
-
-```bash
-ACCOUNTS_CONFIG_PATH=config/accounts.yaml PROJECT_ID=agenda-pessoal-projeto python -m app.main
 ```
 
 ## Testes
@@ -114,12 +135,23 @@ ACCOUNTS_CONFIG_PATH=config/accounts.yaml PROJECT_ID=agenda-pessoal-projeto pyth
 python -m pytest
 ```
 
-## Deploy
+## Validacao operacional
 
-A infraestrutura existente usa Cloud Run Jobs. Os comandos atuais continuam no `Makefile`:
+Depois do merge:
 
 ```bash
 make deploy
 make run-job
-make list-jobs
 ```
+
+Verifique no Firestore:
+
+- novo documento em `runs`;
+- documentos em `accounts/<account_id>/emails`;
+- documentos em `accounts/<account_id>/classifications`;
+- documentos em `accounts/<account_id>/action_plans`;
+- nenhuma alteracao na caixa Gmail.
+
+## Infraestrutura
+
+Dockerfile, Makefile, Cloud Build, Cloud Run e infraestrutura GCP permanecem inalterados.

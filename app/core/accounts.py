@@ -6,7 +6,8 @@ from typing import Literal
 
 import yaml
 
-Provider = Literal["gmail", "outlook"]
+Provider = Literal["gmail", "outlook", "calendar", "whatsapp"]
+SUPPORTED_PROVIDERS = {"gmail", "outlook", "calendar", "whatsapp"}
 
 
 @dataclass(frozen=True)
@@ -66,7 +67,7 @@ class AccountManager:
             raise AccountConfigError("Cada conta deve ser um objeto YAML.")
 
         provider = raw.get("provider")
-        if provider not in {"gmail", "outlook"}:
+        if provider not in SUPPORTED_PROVIDERS:
             raise AccountConfigError(f"Provider invalido para conta {raw.get('id')!r}: {provider!r}")
 
         policies = raw.get("policies") or {}

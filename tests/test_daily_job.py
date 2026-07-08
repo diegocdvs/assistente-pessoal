@@ -3,7 +3,8 @@ from __future__ import annotations
 from app.config import Settings
 from app.core.accounts import AccountPolicies, MailAccount
 from app.core.daily_job import DailyJob
-from app.core.models import EmailItem
+from app.core.models import EmailEntity
+from app.storage.persistence import PersistenceResult
 
 
 class FakeAccountManager:
@@ -22,18 +23,18 @@ class FakeAccountManager:
         ]
 
 
-class FakeGmailConnector:
+class FakeConnectorManager:
     def __init__(self):
         self.accounts = []
 
     def fetch_recent(self, account):
         self.accounts.append(account.id)
         return [
-            EmailItem(
+            EmailEntity(
+                id="msg-1",
+                provider=account.provider,
                 account_id=account.id,
                 account_email=account.email,
-                provider=account.provider,
-                id="msg-1",
                 thread_id="thread-1",
                 subject="Fatura vencimento hoje",
                 sender="billing@example.com",
@@ -43,35 +44,49 @@ class FakeGmailConnector:
         ]
 
 
-class FakeStore:
+class FakePersistence:
     def __init__(self):
-        self.saved_messages = []
+        self.saved_emails = []
+        self.saved_classifications = []
+        self.saved_action_plans = []
         self.saved_runs = []
 
-    def save_processed_emails(self, processed):
-        self.saved_messages.extend(processed)
-        return ["pessoal_gmail_msg-1"]
+    def save_email(self, email):
+        self.saved_emails.append(email)
+        return PersistenceResult(document_id=email.id, existed=False)
+
+    def save_classification(self, email, classification):
+        self.saved_classifications.append((email, classification))
+        return email.id
+
+    def save_action_plan(self, email, action_plan):
+        self.saved_action_plans.append((email, action_plan))
+        return email.id
 
     def save_run(self, report):
         self.saved_runs.append(report)
         return "run-1"
 
 
-def test_daily_job_reads_enabled_gmail_accounts_and_persists_messages():
-    gmail = FakeGmailConnector()
-    store = FakeStore()
+def test_daily_job_runs_decoupled_pipeline_and_report():
+    connector_manager = FakeConnectorManager()
+    persistence = FakePersistence()
     job = DailyJob(
-        Settings(project_id="project", accounts_config_path="unused"),
+        Settings(project_id="project", accounts_config_path="unused", dry_run=True),
         account_manager=FakeAccountManager(),
-        gmail_connector=gmail,
-        store=store,
+        connector_manager=connector_manager,
+        persistence=persistence,
     )
 
     report = job.run()
 
-    assert gmail.accounts == ["pessoal"]
-    assert len(store.saved_messages) == 1
-    assert len(store.saved_runs) == 1
-    assert report["total"] == 1
-    assert report["important_count"] == 1
+    assert connector_manager.accounts == ["pessoal"]
+    assert len(persistence.saved_emails) == 1
+    assert len(persistence.saved_classifications) == 1
+    assert len(persistence.saved_action_plans) == 2
+    assert len(persistence.saved_runs) == 1
+    assert report["total_by_account"] == {"pessoal": 1}
+    assert report["total_by_category"] == {"financeiro": 1}
+    assert report["total_by_priority"] == {"alta": 1}
+    assert report["planned_actions"][0]["dry_run"] is True
     assert report["errors"] == []

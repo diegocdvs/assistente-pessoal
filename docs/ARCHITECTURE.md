@@ -1,87 +1,135 @@
 # Arquitetura do Assistente Pessoal
 
-## Objetivo
-
-Executar uma rotina diaria no Google Cloud para ler emails de multiplas contas, classificar mensagens por regras explicitas e persistir historico no Firestore.
-
-## Fluxo Sprint 1
+## Pipeline
 
 ```text
-Cloud Run Job
-  -> app.main
-  -> DailyJob
-  -> AccountManager
-  -> GmailConnector
-  -> Gmail API
-  -> Rule Classifier
-  -> FirestoreStore
+Connector
+  -> EmailEntity
+  -> Classifier
+  -> Persistence
+  -> Automation
+  -> Report
 ```
 
-## Componentes
+A Sprint 1.5 separa integracoes externas, dominio, classificacao, persistencia, planejamento de automacao e relatorio. A meta e preparar a base para Calendar, Outlook, WhatsApp e IA sem acoplamento ao Gmail.
 
-### AccountManager
+## DailyJob
 
-`app/core/accounts.py` carrega `config/accounts.yaml`, valida a estrutura e entrega apenas contas habilitadas para o job. Uma nova conta deve exigir somente uma nova entrada YAML, sem alteracao de codigo.
+`app/core/daily_job.py` e apenas o orquestrador. Ele depende de contratos:
 
-### GmailConnector
+- `ConnectorManagerProtocol`
+- `ClassifierProtocol`
+- `PersistenceProtocol`
+- `AutomationPlannerProtocol`
+- `ReporterProtocol`
 
-`app/connectors/gmail.py` usa:
+As implementacoes padrao sao montadas no construtor, mas o job nao instancia `GmailConnector` diretamente.
 
-- `google-api-python-client`;
-- refresh token;
-- Google Secret Manager;
-- secrets derivados de `secret_prefix`.
+## ConnectorManager
 
-Durante a execucao, o conector usa escopo `gmail.readonly` e chama somente `messages.list` e `messages.get`.
+`app/connectors/manager.py` registra conectores por provider.
 
-### Classifier
+- `gmail`: implementado via `GmailConnector`.
+- `outlook`: provider planejado.
+- `calendar`: provider planejado.
+- `whatsapp`: provider planejado.
 
-`app/core/classifier.py` aplica regras deterministicas iniciais:
+Conectores retornam `EmailEntity` ou entidade equivalente de dominio, nunca payload cru da API externa.
 
-- seguranca: prioridade critica;
-- financeiro, evento e trabalho: prioridade importante;
-- compra e outros: prioridade informativa;
-- newsletter e promocoes: ruido.
+## EmailEntity
 
-O classificador pode indicar possivel evento, mas a Sprint 1 apenas registra essa informacao.
+Modelo interno normalizado:
 
-### FirestoreStore
+```text
+id, provider, account_id, account_email, thread_id, subject, sender,
+recipients, snippet, labels, received_at, raw_headers, metadata
+```
 
-`app/storage/firestore_store.py` persiste:
+Detalhes especificos do Gmail ficam em `metadata`.
 
-- `runs`: resumo da execucao;
-- `processed_emails`: mensagem, classificacao, conta, provedor e acoes observacionais.
+## WorkItem
 
-## Multi-contas
+Modelo generico para futuras filas e automacoes:
 
-Cada conta contem:
+```text
+id, source, type, account_id, payload, created_at
+```
 
-- `id`;
-- `label`;
-- `provider`;
-- `email`;
-- `enabled`;
-- `secret_prefix`;
-- `max_emails`;
-- `calendar.enabled`;
-- `firestore.enabled`;
-- `policies`.
+## Classifier
 
-Providers planejados:
+`RuleBasedClassifier` retorna:
 
-- `gmail`: implementado na Sprint 1;
-- `outlook`: reservado para sprint futura;
-- Google Calendar, WhatsApp e IA: preparados no desenho, sem execucao mutavel nesta sprint.
+- `category`
+- `priority`
+- `confidence`
+- `reason`
+- `possible_event`
 
-## Politica de seguranca
+Categorias:
 
-A Sprint 1 e somente leitura para email:
+```text
+financeiro, compra, entrega, evento, trabalho, seguranca, promocao,
+newsletter, social, educacao, viagem, saude, sistema, outros
+```
 
-- nao marca como lido;
-- nao arquiva;
-- nao apaga;
-- nao altera labels;
-- nao envia email;
-- nao cria eventos.
+Prioridades:
 
-Acoes retornadas no relatorio sao observacionais, por exemplo destacar alerta critico ou registrar possivel evento para revisao futura.
+```text
+critica, alta, normal, baixa, ruido
+```
+
+Regras evitam falsos positivos de eventos em promocoes, newsletters, tutoriais e recibos.
+
+## Persistence
+
+`app/storage/persistence.py` oferece:
+
+- `save_run`
+- `save_email`
+- `save_classification`
+- `save_action_plan`
+- `upsert_email`
+
+Estrutura Firestore:
+
+```text
+runs/{run_id}
+accounts/{account_id}/emails/{message_id}
+accounts/{account_id}/classifications/{message_id}
+accounts/{account_id}/action_plans/{message_id}
+```
+
+`save_email` usa merge/upsert por `message_id`; documentos existentes atualizam `last_seen_at`, documentos novos recebem `first_seen_at`.
+
+## AutomationPlanner
+
+`app/core/automation.py` gera planos, mas nao executa acoes reais.
+
+`ActionPlan`:
+
+```text
+type, reason, dry_run, status, payload
+```
+
+## Report
+
+`app/core/report.py` gera:
+
+- total por conta;
+- total por categoria;
+- total por prioridade;
+- erros;
+- acoes planejadas;
+- duracao da execucao.
+
+## Seguranca
+
+O pipeline segue somente leitura:
+
+- nao marcar lido;
+- nao mover;
+- nao excluir;
+- nao criar evento;
+- nao enviar WhatsApp.
+
+`DRY_RUN=true` deve permanecer ativo enquanto as automacoes reais nao forem explicitamente projetadas e testadas.
