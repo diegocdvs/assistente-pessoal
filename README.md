@@ -27,7 +27,7 @@ Ele nao instancia `GmailConnector` diretamente.
 
 ## Camadas
 
-- `app/connectors/gmail.py`: conector Gmail read-only que retorna `EmailEntity`.
+- `app/connectors/gmail.py`: conector Gmail que retorna `EmailEntity` e nao executa mutacoes.
 - `app/connectors/manager.py`: registra conectores por provider. Hoje registra `gmail`; a estrutura esta pronta para `outlook`, `calendar` e `whatsapp`.
 - `app/core/models.py`: `EmailEntity`, `WorkItem`, `Classification`, `ActionPlan` e `PipelineResult`.
 - `app/core/classifier.py`: classificador por regras com categoria, prioridade, confianca, motivo e `possible_event`.
@@ -103,7 +103,7 @@ A persistencia usa merge/upsert. Emails existentes atualizam `last_seen_at`; ema
 - envia WhatsApp;
 - executa automacoes externas.
 
-O GmailConnector usa `gmail.readonly`.
+O GmailConnector usa os escopos `gmail.modify` e `calendar.events` porque o refresh token de producao foi emitido com eles. Mesmo assim, o codigo atual apenas le mensagens e nao chama endpoints mutaveis.
 
 ## Configuracao de contas
 
@@ -171,8 +171,16 @@ O comando falha se encontrar erros de configuracao obrigatoria.
 Depois do merge:
 
 ```bash
+make validate
+make doctor
 make deploy
-make run-job
+make smoke
+```
+
+Fluxo completo:
+
+```bash
+make release
 ```
 
 Smoke test:
@@ -181,7 +189,7 @@ Smoke test:
 make smoke
 ```
 
-O smoke executa o job, identifica a execucao, le logs, falha em erros conhecidos e valida o report final. Ele tambem tenta conferir Firestore quando as credenciais locais permitem.
+O smoke executa o job, identifica a execucao, le logs para detectar erros conhecidos e validar sinais basicos. Se o report JSON estiver truncado nos logs, ele faz fallback para Firestore e exige documentos em `emails` e `classifications`; `action_plans` vazio gera `WARN`, nao falha.
 
 Verifique no Firestore:
 

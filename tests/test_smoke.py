@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import subprocess
+import sys
+from types import SimpleNamespace
 
 from scripts import smoke
 from scripts.smoke import (
     FirestoreStatus,
+    count_documents,
     find_known_error,
     find_report,
     strip_log_prefix,
     strip_log_prefixes,
+    validate_firestore,
     validate_report,
 )
 
@@ -93,6 +97,18 @@ def test_validate_report_warns_when_planned_actions_is_empty():
     assert status.warnings == ["Nenhum action plan encontrado no report."]
 
 
+def test_validate_report_rejects_errors_and_empty_totals():
+    assert validate_report({"total": 1, "errors": [{"error": "boom"}]}).error == (
+        "Report possui erros: [{'error': 'boom'}]"
+    )
+    assert validate_report({"total": 0, "errors": [], "total_by_category": {"outros": 1}}).error == (
+        "Nenhum email processado."
+    )
+    assert validate_report({"total": 1, "errors": [], "planned_actions": []}).error == (
+        "Nenhum total de classificacao ou prioridade encontrado no report."
+    )
+
+
 def test_known_error_in_logs_is_detected_as_failure_signal():
     assert find_known_error("RefreshError: invalid_grant") == "RefreshError"
 
@@ -138,6 +154,28 @@ def test_main_uses_firestore_fallback_when_logs_are_truncated(monkeypatch, capsy
     assert "action plans: 0" in output
 
 
+def test_main_uses_firestore_fallback_when_log_read_fails(monkeypatch, capsys):
+    def fake_run(command):
+        if command == ["make", "run-job"]:
+            return subprocess.CompletedProcess(command, 0, stdout="Execution [assistente-pessoal-diario-abc]\n", stderr="")
+        return subprocess.CompletedProcess(command, 1, stdout="", stderr="logs unavailable")
+
+    monkeypatch.setattr(smoke, "run", fake_run)
+    monkeypatch.setattr(
+        smoke,
+        "validate_firestore",
+        lambda project_id, account_id=smoke.DEFAULT_ACCOUNT_ID: FirestoreStatus(
+            emails=1,
+            classifications=1,
+            action_plans=1,
+        ),
+    )
+    monkeypatch.setattr("sys.argv", ["smoke.py"])
+
+    assert smoke.main() == 0
+    assert "Falha ao ler logs da execucao; usando fallback Firestore." in capsys.readouterr().out
+
+
 def test_main_fails_on_known_error_in_logs(monkeypatch, capsys):
     def fake_run(command):
         if command == ["make", "run-job"]:
@@ -149,3 +187,85 @@ def test_main_fails_on_known_error_in_logs(monkeypatch, capsys):
 
     assert smoke.main() == 1
     assert "Padrao proibido encontrado nos logs: RefreshError" in capsys.readouterr().out
+
+
+def test_main_fails_when_job_execution_fails(monkeypatch, capsys):
+    monkeypatch.setattr(
+        smoke,
+        "run",
+        lambda command: subprocess.CompletedProcess(command, 2, stdout="", stderr="job failed"),
+    )
+    monkeypatch.setattr("sys.argv", ["smoke.py"])
+
+    assert smoke.main() == 2
+    assert "make run-job falhou" in capsys.readouterr().out
+
+
+def test_main_fails_when_execution_name_is_missing(monkeypatch, capsys):
+    def fake_run(command):
+        if command == ["make", "run-job"]:
+            return subprocess.CompletedProcess(command, 0, stdout="done\n", stderr="")
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(smoke, "run", fake_run)
+    monkeypatch.setattr("sys.argv", ["smoke.py"])
+
+    assert smoke.main() == 1
+    assert "Nao foi possivel identificar a execucao" in capsys.readouterr().out
+
+
+class FakeSubcollection:
+    def __init__(self, count: int) -> None:
+        self.count = count
+
+    def limit(self, value: int):
+        return self
+
+    def stream(self):
+        return [object()] * self.count
+
+
+class FakeAccountDocument:
+    def __init__(self, counts):
+        self.counts = counts
+
+    def collection(self, subcollection: str):
+        return FakeSubcollection(self.counts[subcollection])
+
+
+class FakeAccountCollection:
+    def __init__(self, counts):
+        self.counts = counts
+
+    def document(self, account_id: str):
+        return FakeAccountDocument(self.counts)
+
+
+class FakeDb:
+    def __init__(self, counts):
+        self.counts = counts
+
+    def collection(self, name: str):
+        return FakeAccountCollection(self.counts)
+
+
+def test_validate_firestore_success_and_action_plan_warning(monkeypatch):
+    class FakeFirestore:
+        @staticmethod
+        def Client(project):
+            return FakeDb({"emails": 1, "classifications": 1, "action_plans": 0})
+
+    monkeypatch.setitem(sys.modules, "google.cloud.firestore", FakeFirestore)
+    monkeypatch.setitem(sys.modules, "google.cloud", SimpleNamespace(firestore=FakeFirestore))
+
+    status = validate_firestore("project")
+
+    assert status.error is None
+    assert status.emails == 1
+    assert status.classifications == 1
+    assert status.action_plans == 0
+    assert status.warnings == ["Firestore sem action plans em accounts/pessoal_google/action_plans."]
+
+
+def test_count_documents_uses_account_subcollection():
+    assert count_documents(FakeDb({"emails": 1}), "pessoal_google", "emails") == 1

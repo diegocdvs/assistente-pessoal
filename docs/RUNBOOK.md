@@ -1,15 +1,15 @@
-# Runbook Operacional — Assistente Pessoal
+# Runbook Operacional - Assistente Pessoal
 
-## 1. Ambiente padrão
+## 1. Ambiente padrao
 
-Executar sempre pelo Cloud Shell.
+Executar preferencialmente pelo Cloud Shell.
 
 ```bash
 cd ~/assistente-pessoal
 source .venv/bin/activate || true
 ```
 
-## 2. Atualizar código
+## 2. Atualizar codigo
 
 ```bash
 git checkout main
@@ -19,31 +19,74 @@ git pull
 ## 3. Validar localmente
 
 ```bash
+make validate
+```
+
+O alvo executa:
+
+```bash
 python -m pytest
 python -m compileall app scripts
 ```
 
-## 4. Deploy
+## 4. Diagnostico
+
+```bash
+make doctor
+```
+
+Valida Python, pip, `.venv`, Docker, gcloud, autenticacao, projeto ativo, regiao, APIs, secrets e Cloud Run Job.
+
+## 5. Deploy
 
 ```bash
 make deploy
 ```
 
-## 5. Executar job
+## 6. Smoke test
 
 ```bash
-make run-job
+make smoke
 ```
 
-## 6. Ler logs
+O smoke executa o job, captura o nome da execucao, le logs para detectar erros conhecidos e validar sinais basicos. Se o JSON completo do report estiver truncado ou ausente nos logs, faz fallback para Firestore.
 
-Após o `make run-job`, copiar o nome da execução e rodar:
+Falhas do smoke:
+
+- job falhou;
+- erro conhecido nos logs: `invalid_scope`, `accessNotConfigured`, `RefreshError`, `HttpError 403`, `MVP placeholder ativo`;
+- `report.errors != []`, quando o report JSON estiver disponivel;
+- Firestore sem documentos em `accounts/pessoal_google/emails`;
+- Firestore sem documentos em `accounts/pessoal_google/classifications`.
+
+`action_plans` vazio gera `WARN`, nao falha.
+
+## 7. Release completo
+
+```bash
+make release
+```
+
+O alvo executa, em ordem:
+
+```text
+make validate
+make doctor
+make deploy
+make smoke
+```
+
+O `make` interrompe o fluxo na primeira etapa que falhar.
+
+## 8. Ler logs manualmente
+
+Quando necessario, copie o nome da execucao mostrado pelo smoke e rode:
 
 ```bash
 gcloud beta run jobs executions logs read NOME_DA_EXECUCAO --region southamerica-east1
 ```
 
-## 7. Validar Firestore
+## 9. Validar Firestore manualmente
 
 ```bash
 python - <<'PY'
@@ -61,22 +104,23 @@ for sub in ["emails", "classifications", "action_plans"]:
 PY
 ```
 
-## 8. Checklist de sucesso
+## 10. Checklist de sucesso
 
 - Cloud Build termina com `STATUS: SUCCESS`.
-- Cloud Run Job termina com `successfully completed`.
+- Cloud Run Job termina com sucesso.
 - Logs mostram `Gmail retornou 10 mensagens` ou contagem configurada.
-- `errors` no report está vazio.
+- `errors` no report esta vazio quando o JSON completo aparecer nos logs.
 - Firestore mostra documentos em `emails` e `classifications`.
-- `DRY_RUN=true` nos logs.
+- `action_plans` vazio aparece como `WARN`.
+- `DRY_RUN=true` permanece ativo.
 
-## 9. Erros conhecidos
+## 11. Erros conhecidos
 
 ### `invalid_scope`
 
 Causa: escopos do `GmailConnector` diferentes dos usados para gerar o refresh token.
 
-Solução atual:
+Solucao atual: manter os escopos usados para emitir o refresh token de producao ate que o token seja rotacionado.
 
 ```python
 GMAIL_SCOPES = [
@@ -85,11 +129,13 @@ GMAIL_SCOPES = [
 ]
 ```
 
+Mesmo com esses escopos, o codigo atual nao executa mutacoes: nao marca lido, nao move, nao exclui e nao cria eventos.
+
 ### `accessNotConfigured`
 
-Causa: API não habilitada no projeto.
+Causa: API nao habilitada no projeto.
 
-Solução:
+Solucao:
 
 ```bash
 gcloud services enable gmail.googleapis.com
@@ -97,9 +143,9 @@ gcloud services enable gmail.googleapis.com
 
 ### `No module named pytest`
 
-Causa: venv não ativada ou dependências não instaladas.
+Causa: venv nao ativada ou dependencias nao instaladas.
 
-Solução:
+Solucao:
 
 ```bash
 cd ~/assistente-pessoal
@@ -112,23 +158,29 @@ pip install -r requirements.txt
 
 Causa: comando incorreto `make deploy make run-job`.
 
-Solução:
+Solucao:
+
+```bash
+make release
+```
+
+ou, manualmente:
 
 ```bash
 make deploy
-make run-job
+make smoke
 ```
 
 ### `--region: command not found`
 
 Causa: quebra incorreta de linha no shell.
 
-Solução: executar em linha única.
+Solucao: executar em linha unica.
 
 ```bash
 gcloud beta run jobs executions logs read NOME --region southamerica-east1
 ```
 
-## 10. Regra operacional
+## 12. Regra operacional
 
-Não diagnosticar manualmente por muito tempo. Se um erro ocorrer duas vezes, criar verificação em `make doctor` ou `make smoke`.
+Nao diagnosticar manualmente por muito tempo. Se um erro ocorrer duas vezes, criar verificacao em `make doctor` ou `make smoke`.

@@ -126,7 +126,6 @@ type
 account_id
 payload
 created_at
-metadata
 ```
 
 Exemplos:
@@ -150,7 +149,6 @@ priority
 confidence
 reason
 possible_event
-metadata
 ```
 
 Categorias iniciais:
@@ -189,17 +187,11 @@ Representa uma ação planejada, não executada.
 Campos mínimos:
 
 ```text
-id
-work_item_id
-account_id
 type
 reason
-status
 dry_run
+status
 payload
-created_at
-executed_at
-error
 ```
 
 Estados possíveis:
@@ -224,7 +216,7 @@ Todo conector deve seguir uma interface conceitual parecida com:
 class Connector:
     provider: str
 
-    def fetch(self, account) -> list[WorkItem]:
+    def fetch_recent(self, account) -> list[EmailEntity]:
         ...
 ```
 
@@ -234,7 +226,7 @@ O conector é responsável por:
 - leitura da API externa;
 - tratamento de paginação inicial;
 - normalização para entidade de domínio;
-- devolver `WorkItem` ou entidade equivalente.
+- devolver entidade de dominio normalizada, hoje `EmailEntity`.
 
 O conector não deve:
 
@@ -296,7 +288,7 @@ accounts:
     enabled: true
     email: diegocdvs13@gmail.com
     secret_prefix: google-pessoal
-    max_items: 10
+    max_emails: 10
 ```
 
 Secrets derivados:
@@ -324,7 +316,6 @@ runs/{run_id}
 accounts/{account_id}/emails/{message_id}
 accounts/{account_id}/classifications/{message_id}
 accounts/{account_id}/action_plans/{message_id}
-accounts/{account_id}/work_items/{work_item_id}
 ```
 
 Campos operacionais importantes:
@@ -441,18 +432,18 @@ O relatório deve ser gerado a partir do estado processado, não de chamadas dir
 Campos mínimos:
 
 ```text
-run_id
 started_at
 finished_at
 duration_seconds
+dry_run
 accounts_total
-items_total
-totals_by_account
-totals_by_category
-totals_by_priority
-action_plans_total
+accounts
+total
+total_by_account
+total_by_category
+total_by_priority
 errors
-summary
+planned_actions
 ```
 
 Relatórios futuros:
@@ -488,7 +479,7 @@ gmail.modify
 calendar.events
 ```
 
-Mesmo com `gmail.modify`, o código deve operar como somente leitura enquanto `DRY_RUN=true`.
+Mesmo com `gmail.modify` e `calendar.events`, o código deve operar como somente leitura enquanto `DRY_RUN=true`.
 
 ### 13.3 Menor privilégio
 
