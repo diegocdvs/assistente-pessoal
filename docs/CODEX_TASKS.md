@@ -1,8 +1,8 @@
-# Codex Tasks — prompts prontos
+# Codex Tasks - prompts prontos
 
-Use estes prompts quando o Codex estiver disponível. Cada task deve ser executada isoladamente.
+Use estes prompts quando o Codex estiver disponivel. Cada task deve ser executada isoladamente.
 
-## Task 1.6 — Operação mínima
+## Task 1.6 - Operacao minima
 
 ```text
 Implemente a Sprint 1.6 seguindo:
@@ -13,10 +13,11 @@ Implemente a Sprint 1.6 seguindo:
 - docs/RUNBOOK.md
 
 Escopo:
-Criar comandos operacionais mínimos no Makefile:
+Criar comandos operacionais minimos no Makefile:
 - make validate
 - make doctor
 - make smoke
+- make release
 
 Requisitos:
 1. make validate deve executar:
@@ -24,9 +25,14 @@ Requisitos:
    - python -m compileall app scripts
 
 2. make doctor deve verificar:
+   - Python instalado
+   - pip instalado
+   - ambiente virtual ativo (.venv)
+   - Docker instalado
    - gcloud instalado
+   - autenticacao valida
    - projeto GCP ativo agenda-pessoal-projeto
-   - região southamerica-east1
+   - regiao southamerica-east1
    - APIs habilitadas:
      - run.googleapis.com
      - cloudbuild.googleapis.com
@@ -42,7 +48,7 @@ Requisitos:
 
 3. make smoke deve:
    - executar o job
-   - capturar a última execução
+   - capturar a ultima execucao
    - ler logs
    - falhar se encontrar:
      - invalid_scope
@@ -50,15 +56,25 @@ Requisitos:
      - RefreshError
      - HttpError 403
      - MVP placeholder ativo
-   - validar que o report final não possui errors
+   - validar que o report final nao possui errors quando o JSON estiver disponivel
+   - usar fallback Firestore quando os logs estiverem truncados
+   - exigir documentos em accounts/pessoal_google/emails
+   - exigir documentos em accounts/pessoal_google/classifications
+   - tratar action_plans vazio como WARN
 
-4. Atualizar README com os comandos.
-5. Não alterar GmailConnector.
-6. Não alterar OAuth.
-7. Não alterar arquitetura principal.
-8. Não alterar infraestrutura, salvo Makefile/scripts auxiliares.
+4. make release deve executar:
+   - make validate
+   - make doctor
+   - make deploy
+   - make smoke
 
-Validação:
+5. Atualizar README com os comandos.
+6. Nao alterar GmailConnector.
+7. Nao alterar OAuth.
+8. Nao alterar arquitetura principal.
+9. Nao alterar infraestrutura, salvo Makefile/scripts auxiliares.
+
+Validacao:
 python -m pytest
 python -m compileall app scripts
 make validate
@@ -66,46 +82,46 @@ make validate
 Ao final, abrir PR ou informar commits.
 ```
 
-## Task 2.1 — Preparação Outlook
+## Task 2.1 - Preparacao Outlook
 
 ```text
 Prepare a base do OutlookConnector seguindo os documentos do projeto.
 
 Escopo:
-- documentar secrets necessários para Microsoft/Outlook;
+- documentar secrets necessarios para Microsoft/Outlook;
 - adicionar exemplo desabilitado em config/accounts.yaml;
-- criar esqueleto OutlookConnector sem chamada real se credenciais não existirem;
-- criar testes de normalização com payload fake.
+- criar esqueleto OutlookConnector sem chamada real se credenciais nao existirem;
+- criar testes de normalizacao com payload fake.
 
 Fora de escopo:
 - OAuth Microsoft real;
 - deploy;
-- alteração de DailyJob.
+- alteracao de DailyJob.
 
-Critério de aceite:
-- provider=outlook é reconhecido pelo ConnectorManager quando registrado;
+Criterio de aceite:
+- provider=outlook e reconhecido pelo ConnectorManager quando registrado;
 - nenhum erro ocorre com conta outlook disabled;
 - testes passam.
 ```
 
-## Task 3.1 — WhatsAppNotifier base
+## Task 3.1 - WhatsAppNotifier base
 
 ```text
-Criar base do WhatsAppNotifier para envio futuro de resumo diário.
+Criar base do WhatsAppNotifier para envio futuro de resumo diario.
 
 Escopo:
 - NotificationEntity;
 - WhatsAppNotifier interface;
-- implementação dry-run que apenas loga payload;
-- formato de resumo diário a partir do Report.
+- implementacao dry-run que apenas loga payload;
+- formato de resumo diario a partir do Report.
 
 Fora de escopo:
 - envio real pela Meta API;
 - leitura de mensagens WhatsApp;
 - Cloud Scheduler.
 
-Critério de aceite:
-- DRY_RUN não envia mensagem real;
+Criterio de aceite:
+- DRY_RUN nao envia mensagem real;
 - payload aparece nos logs;
 - testes passam.
 ```

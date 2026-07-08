@@ -6,7 +6,7 @@ from typing import Any
 
 from google.cloud import firestore
 
-from app.core.models import ActionPlan, Classification, EmailEntity
+from app.core.models import SCHEMA_VERSION, ActionPlan, Classification, EmailEntity
 
 
 @dataclass(frozen=True)
@@ -20,47 +20,56 @@ class FirestorePersistence:
         self.client = firestore.Client(project=project_id)
 
     def save_run(self, report: dict[str, Any]) -> str:
-        doc_ref = self.client.collection("runs").document()
-        doc_ref.set({**report, "created_at": _now()})
+        run_id = report.get("run_id")
+        doc_ref = self.client.collection("runs").document(run_id) if run_id else self.client.collection("runs").document()
+        doc_ref.set({**report, "schema_version": report.get("schema_version", SCHEMA_VERSION), "created_at": _now()})
         return doc_ref.id
 
-    def save_email(self, email: EmailEntity) -> PersistenceResult:
+    def save_email(self, email: EmailEntity, run_id: str | None = None) -> PersistenceResult:
         doc_ref = self._account_document(email.account_id).collection("emails").document(_safe_document_id(email.id))
         snapshot = doc_ref.get()
         existed = bool(getattr(snapshot, "exists", False))
 
         payload = {
             **email.to_dict(),
+            "schema_version": SCHEMA_VERSION,
             "last_seen_at": _now(),
         }
+        if run_id:
+            payload["run_id"] = run_id
         if not existed:
             payload["first_seen_at"] = _now()
 
         doc_ref.set(payload, merge=True)
         return PersistenceResult(document_id=doc_ref.id, existed=existed)
 
-    def save_classification(self, email: EmailEntity, classification: Classification) -> str:
+    def save_classification(self, email: EmailEntity, classification: Classification, run_id: str | None = None) -> str:
         doc_ref = self._account_document(email.account_id).collection("classifications").document(_safe_document_id(email.id))
-        doc_ref.set(
-            {
-                "message_id": email.id,
-                "account_id": email.account_id,
-                "provider": email.provider,
-                **classification.to_dict(),
-                "updated_at": _now(),
-            },
-            merge=True,
-        )
+        payload = {
+            "message_id": email.id,
+            "account_id": email.account_id,
+            "provider": email.provider,
+            **classification.to_dict(),
+            "schema_version": SCHEMA_VERSION,
+            "updated_at": _now(),
+        }
+        if run_id:
+            payload["run_id"] = run_id
+        doc_ref.set(payload, merge=True)
         return doc_ref.id
 
-    def save_action_plan(self, email: EmailEntity, action_plan: ActionPlan) -> str:
+    def save_action_plan(self, email: EmailEntity, action_plan: ActionPlan, run_id: str | None = None) -> str:
         doc_ref = self._account_document(email.account_id).collection("action_plans").document(_safe_document_id(email.id))
+        action_payload = action_plan.to_dict()
+        if run_id:
+            action_payload["run_id"] = run_id
         doc_ref.set(
             {
                 "message_id": email.id,
                 "account_id": email.account_id,
                 "provider": email.provider,
-                f"plans.{action_plan.type}": action_plan.to_dict(),
+                "schema_version": SCHEMA_VERSION,
+                f"plans.{action_plan.type}": action_payload,
                 "updated_at": _now(),
             },
             merge=True,

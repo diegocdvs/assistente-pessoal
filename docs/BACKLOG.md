@@ -1,89 +1,106 @@
-# Backlog — Assistente Pessoal
+# Backlog - Assistente Pessoal
 
 Status: vivo
-Organização: por capacidade e sprint
+Organizacao: por capacidade e sprint
 
-## Sprint 1.6 — Operação mínima
+## Release 0.2 - Foundation Hardening
 
-Objetivo: reduzir diagnóstico manual e preparar rotina de deploy/smoke.
+Objetivo: fortalecer contratos e operacao antes de novos conectores.
 
-| Task | Prioridade | Dependência | Critério de aceite | Status |
+| Task | Prioridade | Dependencia | Criterio de aceite | Status |
 |---|---:|---|---|---|
-| 1.6.1 `make validate` | Alta | testes existentes | roda pytest e compileall | Pendente |
-| 1.6.2 `make doctor` | Alta | gcloud | valida projeto, região, APIs, secrets e Cloud Run Job | Pendente |
-| 1.6.3 `make smoke` | Alta | Cloud Run Job | executa job, lê logs e falha em erros conhecidos | Pendente |
-| 1.6.4 docs operacionais | Média | comandos acima | README atualizado | Pendente |
+| 0.2.1 WorkItem central | Alta | EmailEntity | EmailEntity converte para WorkItem e pipeline registra work item conceitual | Concluido |
+| 0.2.2 ActionPlan auditavel | Alta | AutomationPlanner | ActionPlan tem id, source, timestamps, dry_run, status, payload e audit_metadata | Concluido |
+| 0.2.3 Config centralizada | Alta | Settings | PROJECT_ID, REGION, DRY_RUN, path de contas, flags e limites em app/config.py | Concluido |
+| 0.2.4 Feature flags | Media | Config centralizada | flags futuras existem e permanecem desligadas por padrao | Concluido |
+| 0.2.5 Observabilidade minima | Alta | DailyJob | run_id, contagens por etapa e schema_version persistidos | Concluido |
+| 0.2.6 Documentacao | Media | itens acima | README, arquitetura, runbook, backlog e review atualizados | Concluido |
 
-## Sprint 2 — OutlookConnector
+## Sprint 1.6 - Operacao minima
 
-Objetivo: provar que a arquitetura aceita outro provedor de e-mail sem alterar o núcleo.
+Objetivo: reduzir diagnostico manual e preparar rotina de deploy/smoke.
 
-| Task | Prioridade | Dependência | Critério de aceite | Status |
+| Task | Prioridade | Dependencia | Criterio de aceite | Status |
 |---|---:|---|---|---|
-| 2.1 definir secrets Microsoft | Alta | Entra ID | documentação clara de client id/secret/refresh token | Pendente |
+| 1.6.1 `make validate` | Alta | testes existentes | roda pytest e compileall | Concluido |
+| 1.6.2 `make doctor` | Alta | gcloud | valida projeto, regiao, APIs, secrets e Cloud Run Job | Concluido |
+| 1.6.3 `make smoke` | Alta | Cloud Run Job | executa job, le logs, falha em erros conhecidos e usa fallback Firestore | Concluido |
+| 1.6.4 docs operacionais | Media | comandos acima | README atualizado | Concluido |
+| 1.6.5 `make release` | Alta | comandos operacionais | encadeia validate, doctor, deploy e smoke | Concluido |
+
+## Sprint 2 - OutlookConnector
+
+Objetivo: provar que a arquitetura aceita outro provedor de e-mail sem alterar o nucleo.
+
+| Task | Prioridade | Dependencia | Criterio de aceite | Status |
+|---|---:|---|---|---|
+| 2.1 definir secrets Microsoft | Alta | Entra ID | documentacao clara de client id/secret/refresh token | Pendente |
 | 2.2 implementar OutlookConnector | Alta | msal | retorna EmailEntity | Pendente |
 | 2.3 registrar no ConnectorManager | Alta | 2.2 | provider=outlook processado sem mexer em DailyJob | Pendente |
-| 2.4 testes do OutlookConnector | Alta | 2.2 | mocks cobrindo normalização | Pendente |
-| 2.5 config accounts.yaml | Média | 2.3 | conta outlook desabilitada por padrão | Pendente |
-| 2.6 smoke em DRY_RUN | Alta | 2.5 | job executa sem ação mutável | Pendente |
+| 2.4 testes do OutlookConnector | Alta | 2.2 | mocks cobrindo normalizacao | Pendente |
+| 2.5 config accounts.yaml | Media | 2.3 | conta outlook desabilitada por padrao | Pendente |
+| 2.6 smoke em DRY_RUN | Alta | 2.5 | job executa sem acao mutavel | Pendente |
 
-## Sprint 3 — WhatsAppNotifier
+## Sprint 3 - WhatsAppNotifier
 
-Objetivo: entregar valor diário por notificação.
+Objetivo: entregar valor diario por notificacao.
 
-| Task | Prioridade | Dependência | Critério de aceite | Status |
+| Task | Prioridade | Dependencia | Criterio de aceite | Status |
 |---|---:|---|---|---|
-| 3.1 definir canal Meta WhatsApp | Alta | token/número/template | docs de setup | Pendente |
+| 3.1 definir canal Meta WhatsApp | Alta | token/numero/template | docs de setup | Pendente |
 | 3.2 criar NotificationEntity | Alta | report | mensagem estruturada | Pendente |
 | 3.3 WhatsAppNotifier | Alta | secrets Meta | envia ou simula envio em DRY_RUN | Pendente |
-| 3.4 resumo diário textual | Alta | Report | mensagem curta e útil | Pendente |
-| 3.5 Scheduler diário | Alta | Cloud Scheduler | roda diariamente | Pendente |
-| 3.6 smoke de notificação | Alta | 3.3 | logs mostram payload sem envio real em DRY_RUN | Pendente |
+| 3.4 resumo diario textual | Alta | Report | mensagem curta e util | Pendente |
+| 3.5 Scheduler diario | Alta | Cloud Scheduler | roda diariamente | Pendente |
+| 3.6 smoke de notificacao | Alta | 3.3 | logs mostram payload sem envio real em DRY_RUN | Pendente |
 
-## Sprint 4 — Calendar Intelligence
+## Sprint 4 - Calendar Intelligence
 
 Objetivo: ler agenda e planejar eventos a partir de e-mails.
 
-| Task | Prioridade | Dependência | Critério de aceite | Status |
+| Task | Prioridade | Dependencia | Criterio de aceite | Status |
 |---|---:|---|---|---|
 | 4.1 CalendarConnector read-only | Alta | OAuth calendar | normaliza CalendarEventEntity | Pendente |
 | 4.2 detectar evento em EmailEntity | Alta | classifier | ActionPlan de evento | Pendente |
-| 4.3 conflito de agenda | Média | CalendarConnector | identifica sobreposição | Pendente |
-| 4.4 criar plano de criação de evento | Alta | AutomationPlanner | sem execução real em DRY_RUN | Pendente |
-| 4.5 executor futuro de evento | Baixa | AutomationExecutor | interface, sem mutação inicial | Pendente |
+| 4.3 conflito de agenda | Media | CalendarConnector | identifica sobreposicao | Pendente |
+| 4.4 criar plano de criacao de evento | Alta | AutomationPlanner | sem execucao real em DRY_RUN | Pendente |
+| 4.5 executor futuro de evento | Baixa | AutomationExecutor | interface, sem mutacao inicial | Pendente |
 
-## Sprint 5 — IA
+## Sprint 5 - IA
 
-Objetivo: melhorar classificação e resumo sem acoplar modelo.
+Objetivo: melhorar classificacao e resumo sem acoplar modelo.
 
-| Task | Prioridade | Dependência | Critério de aceite | Status |
+| Task | Prioridade | Dependencia | Criterio de aceite | Status |
 |---|---:|---|---|---|
-| 5.1 LLMProvider interface | Alta | WorkItem | sem dependência direta de SDK no domínio | Pendente |
-| 5.2 OpenAIProvider | Média | secret | classifica/sumariza via interface | Pendente |
-| 5.3 cache de resposta | Média | persistence | evita custo repetido | Pendente |
-| 5.4 prompt policy | Alta | PRD | regras de uso e não uso | Pendente |
-| 5.5 avaliação humana | Média | dashboard/report | campo de feedback | Pendente |
+| 5.1 LLMProvider interface | Alta | WorkItem | sem dependencia direta de SDK no dominio | Pendente |
+| 5.2 OpenAIProvider | Media | secret | classifica/sumariza via interface | Pendente |
+| 5.3 cache de resposta | Media | persistence | evita custo repetido | Pendente |
+| 5.4 prompt policy | Alta | PRD | regras de uso e nao uso | Pendente |
+| 5.5 avaliacao humana | Media | dashboard/report | campo de feedback | Pendente |
 
-## Sprint 6 — Dashboard
+## Sprint 6 - Dashboard
 
-Objetivo: visualização operacional.
+Objetivo: visualizacao operacional.
 
-| Task | Prioridade | Dependência | Critério de aceite | Status |
+| Task | Prioridade | Dependencia | Criterio de aceite | Status |
 |---|---:|---|---|---|
-| 6.1 definir stack | Média | PRD | decisão registrada | Pendente |
+| 6.1 definir stack | Media | PRD | decisao registrada | Pendente |
 | 6.2 endpoint/read model | Alta | Firestore | dados agregados por run | Pendente |
-| 6.3 tela inicial | Média | stack | cards de status | Pendente |
-| 6.4 timeline de ações | Média | action_plans | filtros por status | Pendente |
+| 6.3 tela inicial | Media | stack | cards de status | Pendente |
+| 6.4 timeline de acoes | Media | action_plans | filtros por status | Pendente |
 
-## Dívida técnica conhecida
+## Divida tecnica conhecida
 
-| Item | Prioridade | Resolução |
+| Item | Prioridade | Resolucao |
 |---|---:|---|
-| Escopos OAuth atuais usam `gmail.modify` por compatibilidade do refresh token | Média | rotacionar token futuramente com escopo mínimo quando possível |
-| `make deploy make run-job` causa erro de alvo | Baixa | documentar e criar `make release` |
-| Validação Firestore ainda manual | Média | incluir em `make smoke` |
+| Escopos OAuth atuais usam `gmail.modify` e `calendar.events` por compatibilidade do refresh token | Media | rotacionar token futuramente com escopo minimo quando possivel |
+| `make deploy make run-job` causa erro de alvo | Baixa | resolvido por `make release` |
+| Validacao Firestore ainda manual | Media | smoke usa fallback Firestore para emails e classifications |
 | Codex possui limite de uso | Alta | tasks pequenas e prompts enxutos |
+| `WorkItem` nao participava do pipeline real | Alta | Release 0.2 cria WorkItem conceitual a partir de EmailEntity |
+| `ActionPlan` tinha pouca auditabilidade | Alta | Release 0.2 adiciona id, source, timestamps e audit_metadata |
+| Observabilidade nao tinha run_id explicito | Alta | Release 0.2 adiciona run_id e contagens por etapa |
 
-## Próxima task operacional
+## Proxima release recomendada
 
-Task 1.6.1–1.6.3 devem ser implementadas juntas, pois são pequenas e reduzem atrito imediatamente.
+Release 0.3 deve provar multi-conta real antes de novos dominios ou automacoes mutaveis.

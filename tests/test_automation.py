@@ -28,6 +28,10 @@ def test_automation_planner_creates_dry_run_action_plans_with_payload():
     assert all(action.dry_run is True for action in actions)
     assert all(action.status == "planned" for action in actions)
     assert actions[0].payload["email_id"] == "msg-1"
+    assert actions[0].id == "acc:msg-1:review_high_priority"
+    assert actions[0].source == "rule_based_classifier"
+    assert actions[0].audit_metadata["classification_confidence"] == 0.8
+    assert actions[0].audit_metadata["thread_id"] == "thread-1"
 
 
 def test_automation_planner_does_not_plan_noise_actions():
