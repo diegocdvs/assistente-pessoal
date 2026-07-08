@@ -4,7 +4,7 @@ from app.connectors.gmail import GmailConnector
 from app.core.accounts import MailAccount
 
 
-def test_gmail_payload_is_converted_to_email_item():
+def test_gmail_payload_is_converted_to_email_entity():
     connector = GmailConnector(project_id="project", secret_reader=object())
     account = MailAccount(
         id="pessoal",
@@ -15,7 +15,7 @@ def test_gmail_payload_is_converted_to_email_item():
         secret_prefix="google-pessoal",
     )
 
-    email = connector._to_email_item(
+    email = connector._to_email_entity(
         account,
         {
             "id": "abc123",
@@ -39,3 +39,4 @@ def test_gmail_payload_is_converted_to_email_item():
     assert email.subject == "Ola"
     assert email.labels == ["INBOX", "UNREAD"]
     assert email.received_at is not None
+    assert email.metadata["gmail_internal_date"] is None
