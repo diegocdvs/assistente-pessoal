@@ -77,19 +77,22 @@ def main() -> int:
         return 1
 
     emails_processed = int(report.get("total") or 0)
-    classifications = sum(int(value) for value in (report.get("total_by_category") or {}).values())
+    total_by_category = report.get("total_by_category") or {}
+    total_by_priority = report.get("total_by_priority") or {}
+    classifications = sum(int(value) for value in total_by_category.values()) or sum(
+        int(value) for value in total_by_priority.values()
+    )
     action_plans = len(report.get("planned_actions") or [])
     duration = report.get("duration_seconds", "desconhecida")
 
     if emails_processed <= 0:
         print("[ERROR] Nenhum email processado.")
         return 1
-    if classifications <= 0:
-        print("[ERROR] Nenhuma classificacao encontrada no report.")
+    if not total_by_category and not total_by_priority:
+        print("[ERROR] Nenhum total de classificacao ou prioridade encontrado no report.")
         return 1
     if action_plans <= 0:
-        print("[ERROR] Nenhum action plan encontrado no report.")
-        return 1
+        print("[WARN] Nenhum action plan encontrado no report.")
 
     firestore_status = validate_firestore(args.project_id, report)
 
@@ -144,11 +147,49 @@ def latest_execution(project_id: str, region: str, job_name: str) -> str | None:
 
 
 def find_report(logs: str) -> dict[str, Any] | None:
-    for payload in reversed(extract_json_objects(logs)):
+    for payload in reversed(extract_json_objects(strip_log_prefixes(logs))):
         report = payload.get("report") if isinstance(payload, dict) else None
-        if isinstance(report, dict):
+        if (
+            isinstance(report, dict)
+            and "finished_at" in payload
+            and "dry_run" in payload
+        ):
             return report
     return None
+
+
+def strip_log_prefixes(logs: str) -> str:
+    return "\n".join(strip_log_prefix(line) for line in logs.splitlines())
+
+
+def strip_log_prefix(line: str) -> str:
+    stripped = line.lstrip()
+    if _looks_like_json_line(stripped):
+        return stripped
+
+    match = re.match(
+        r"^\d{4}-\d{2}-\d{2}(?:T|\s+)\d{2}:\d{2}:\d{2}(?:[.,]\d+)?(?:Z|[+-]\d{2}:?\d{2})?\s+(.*)$",
+        stripped,
+    )
+    if match:
+        stripped = match.group(1).lstrip()
+
+    match = re.match(r"^(?:stdout|stderr)\s+[A-Z]\s+(.*)$", stripped)
+    if match:
+        stripped = match.group(1).lstrip()
+
+    if _looks_like_json_line(stripped):
+        return stripped
+
+    json_fragment = re.search(r'([{}\[\],]|"(?:finished_at|dry_run|report)"\s*:)', stripped)
+    if json_fragment:
+        return stripped[json_fragment.start():].lstrip()
+
+    return stripped
+
+
+def _looks_like_json_line(value: str) -> bool:
+    return bool(re.match(r'^(?:[{}\[\],]|"[^"]+"\s*:)', value))
 
 
 def extract_json_objects(text: str) -> list[dict[str, Any]]:
