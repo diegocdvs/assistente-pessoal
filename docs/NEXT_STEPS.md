@@ -12,7 +12,7 @@
 2. Executar o Cloud Run Job e verificar:
 
 - documentos novos em `runs`;
-- documentos em `processed_emails`;
+- documentos em `accounts/<account_id>/emails/<message_id>`;
 - ausencia de alteracoes na caixa Gmail.
 
 ## Sprint 2 sugerida
