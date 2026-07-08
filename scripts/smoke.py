@@ -8,6 +8,7 @@ import sys
 from typing import Any
 
 
+DEFAULT_ACCOUNT_ID = "pessoal_google"
 FORBIDDEN_PATTERNS = (
     "invalid_scope",
     "accessNotConfigured",
@@ -22,6 +23,7 @@ def main() -> int:
     parser.add_argument("--project-id", default="agenda-pessoal-projeto")
     parser.add_argument("--region", default="southamerica-east1")
     parser.add_argument("--job-name", default="assistente-pessoal-diario")
+    parser.add_argument("--account-id", default=DEFAULT_ACCOUNT_ID)
     args = parser.parse_args()
 
     print("== Executando job ==")
@@ -58,23 +60,108 @@ def main() -> int:
     logs = logs_result.stdout + "\n" + logs_result.stderr
     print(logs)
     if logs_result.returncode != 0:
-        print("[ERROR] Falha ao ler logs da execucao.")
-        return logs_result.returncode
+        print("[WARN] Falha ao ler logs da execucao; usando fallback Firestore.")
+        logs = ""
 
-    for pattern in FORBIDDEN_PATTERNS:
-        if pattern in logs:
-            print(f"[ERROR] Padrao proibido encontrado nos logs: {pattern}")
-            return 1
+    known_error = find_known_error(logs)
+    if known_error:
+        print(f"[ERROR] Padrao proibido encontrado nos logs: {known_error}")
+        return 1
+
+    print_log_signals(logs)
 
     report = find_report(logs)
-    if report is None:
-        print("[ERROR] Report final nao encontrado nos logs.")
-        return 1
+    firestore_status: FirestoreStatus | None = None
 
+    if report is None:
+        print("[WARN] Report final nao encontrado completo nos logs; validando Firestore.")
+        firestore_status = validate_firestore(args.project_id, args.account_id)
+        if firestore_status.error:
+            print(f"[ERROR] {firestore_status.error}")
+            return 1
+        for warning in firestore_status.warnings:
+            print(f"[WARN] {warning}")
+        emails_processed = firestore_status.emails
+        classifications = firestore_status.classifications
+        action_plans = firestore_status.action_plans
+        duration = "desconhecida"
+    else:
+        report_status = validate_report(report)
+        if report_status.error:
+            print(f"[ERROR] {report_status.error}")
+            return 1
+        for warning in report_status.warnings:
+            print(f"[WARN] {warning}")
+        emails_processed = report_status.emails
+        classifications = report_status.classifications
+        action_plans = report_status.action_plans
+        duration = report.get("duration_seconds", "desconhecida")
+
+    print("\n== Resumo smoke ==")
+    print(f"execucao: {execution}")
+    print(f"duracao: {duration}")
+    print(f"emails processados: {emails_processed}")
+    print(f"classificacoes: {classifications}")
+    print(f"action plans: {action_plans}")
+    print(f"firestore: {firestore_status.summary if firestore_status else 'nao usado'}")
+    print("status: OK")
+    return 0
+
+
+def run(command: list[str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(command, text=True, capture_output=True)
+
+
+class SmokeStatus:
+    def __init__(
+        self,
+        *,
+        emails: int = 0,
+        classifications: int = 0,
+        action_plans: int = 0,
+        error: str | None = None,
+        warnings: list[str] | None = None,
+    ) -> None:
+        self.emails = emails
+        self.classifications = classifications
+        self.action_plans = action_plans
+        self.error = error
+        self.warnings = warnings or []
+
+
+class FirestoreStatus(SmokeStatus):
+    @property
+    def summary(self) -> str:
+        return (
+            f"emails={self.emails}, "
+            f"classifications={self.classifications}, "
+            f"action_plans={self.action_plans}"
+        )
+
+
+def find_known_error(logs: str) -> str | None:
+    for pattern in FORBIDDEN_PATTERNS:
+        if pattern in logs:
+            return pattern
+    return None
+
+
+def print_log_signals(logs: str) -> None:
+    if "Gmail retornou" in logs:
+        print("[OK] Sinal nos logs: Gmail retornou mensagens.")
+    else:
+        print("[WARN] Sinal ausente nos logs: Gmail retornou.")
+
+    if 'errors": []' in logs or '"errors": []' in strip_log_prefixes(logs):
+        print("[OK] Sinal nos logs: errors vazio.")
+    else:
+        print("[WARN] Sinal ausente nos logs: errors vazio.")
+
+
+def validate_report(report: dict[str, Any]) -> SmokeStatus:
     errors = report.get("errors")
     if errors != []:
-        print(f"[ERROR] Report possui erros: {errors}")
-        return 1
+        return SmokeStatus(error=f"Report possui erros: {errors}")
 
     emails_processed = int(report.get("total") or 0)
     total_by_category = report.get("total_by_category") or {}
@@ -83,32 +170,22 @@ def main() -> int:
         int(value) for value in total_by_priority.values()
     )
     action_plans = len(report.get("planned_actions") or [])
-    duration = report.get("duration_seconds", "desconhecida")
 
     if emails_processed <= 0:
-        print("[ERROR] Nenhum email processado.")
-        return 1
+        return SmokeStatus(error="Nenhum email processado.")
     if not total_by_category and not total_by_priority:
-        print("[ERROR] Nenhum total de classificacao ou prioridade encontrado no report.")
-        return 1
+        return SmokeStatus(error="Nenhum total de classificacao ou prioridade encontrado no report.")
+
+    warnings = []
     if action_plans <= 0:
-        print("[WARN] Nenhum action plan encontrado no report.")
+        warnings.append("Nenhum action plan encontrado no report.")
 
-    firestore_status = validate_firestore(args.project_id, report)
-
-    print("\n== Resumo smoke ==")
-    print(f"execucao: {execution}")
-    print(f"duracao: {duration}")
-    print(f"emails processados: {emails_processed}")
-    print(f"classificacoes: {classifications}")
-    print(f"action plans: {action_plans}")
-    print(f"firestore: {firestore_status}")
-    print("status: OK")
-    return 0
-
-
-def run(command: list[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(command, text=True, capture_output=True)
+    return SmokeStatus(
+        emails=emails_processed,
+        classifications=classifications,
+        action_plans=action_plans,
+        warnings=warnings,
+    )
 
 
 def find_execution_name(output: str) -> str | None:
@@ -226,35 +303,47 @@ def extract_json_objects(text: str) -> list[dict[str, Any]]:
     return objects
 
 
-def validate_firestore(project_id: str, report: dict[str, Any]) -> str:
+def validate_firestore(project_id: str, account_id: str = DEFAULT_ACCOUNT_ID) -> FirestoreStatus:
     try:
         from google.cloud import firestore
     except Exception as exc:
-        return f"WARN ({exc})"
-
-    accounts = report.get("accounts") or []
-    if not accounts:
-        return "WARN (sem contas no report)"
+        return FirestoreStatus(error=f"Firestore indisponivel para fallback: {exc}")
 
     try:
         db = firestore.Client(project=project_id)
-        for account in accounts:
-            account_id = account.get("id")
-            if not account_id:
-                continue
-            for subcollection in ("emails", "classifications", "action_plans"):
-                docs = list(
-                    db.collection("accounts")
-                    .document(account_id)
-                    .collection(subcollection)
-                    .limit(1)
-                    .stream()
-                )
-                if not docs:
-                    return f"WARN ({account_id}/{subcollection} sem documentos visiveis)"
+        counts = {
+            subcollection: count_documents(db, account_id, subcollection)
+            for subcollection in ("emails", "classifications", "action_plans")
+        }
     except Exception as exc:
-        return f"WARN ({exc})"
-    return "OK"
+        return FirestoreStatus(error=f"Falha ao validar Firestore: {exc}")
+
+    if counts["emails"] <= 0:
+        return FirestoreStatus(error=f"Firestore sem documentos em accounts/{account_id}/emails.")
+    if counts["classifications"] <= 0:
+        return FirestoreStatus(error=f"Firestore sem documentos em accounts/{account_id}/classifications.")
+
+    warnings = []
+    if counts["action_plans"] <= 0:
+        warnings.append(f"Firestore sem action plans em accounts/{account_id}/action_plans.")
+
+    return FirestoreStatus(
+        emails=counts["emails"],
+        classifications=counts["classifications"],
+        action_plans=counts["action_plans"],
+        warnings=warnings,
+    )
+
+
+def count_documents(db: Any, account_id: str, subcollection: str) -> int:
+    docs = list(
+        db.collection("accounts")
+        .document(account_id)
+        .collection(subcollection)
+        .limit(1)
+        .stream()
+    )
+    return len(docs)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,16 @@
 from __future__ import annotations
 
-from scripts.smoke import find_report, strip_log_prefix, strip_log_prefixes
+import subprocess
+
+from scripts import smoke
+from scripts.smoke import (
+    FirestoreStatus,
+    find_known_error,
+    find_report,
+    strip_log_prefix,
+    strip_log_prefixes,
+    validate_report,
+)
 
 
 def test_strip_log_prefix_removes_timestamp_and_stream_prefix():
@@ -66,7 +76,76 @@ def test_find_report_accepts_empty_planned_actions():
     assert report["total_by_priority"] == {"normal": 10}
 
 
+def test_validate_report_warns_when_planned_actions_is_empty():
+    status = validate_report(
+        {
+            "total": 10,
+            "errors": [],
+            "total_by_category": {"outros": 10},
+            "planned_actions": [],
+        }
+    )
+
+    assert status.error is None
+    assert status.emails == 10
+    assert status.classifications == 10
+    assert status.action_plans == 0
+    assert status.warnings == ["Nenhum action plan encontrado no report."]
+
+
+def test_known_error_in_logs_is_detected_as_failure_signal():
+    assert find_known_error("RefreshError: invalid_grant") == "RefreshError"
+
+
 def test_find_report_keeps_working_with_plain_json():
     logs = '{\n  "finished_at": "now",\n  "dry_run": true,\n  "report": {"total": 1, "errors": []}\n}'
 
     assert find_report(strip_log_prefixes(logs)) == {"total": 1, "errors": []}
+
+
+def test_main_uses_firestore_fallback_when_logs_are_truncated(monkeypatch, capsys):
+    calls = []
+
+    def fake_run(command):
+        calls.append(command)
+        if command == ["make", "run-job"]:
+            return subprocess.CompletedProcess(command, 0, stdout="Execution [assistente-pessoal-diario-abc]\n", stderr="")
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout='2026-07-08T14:30:00Z stdout F Gmail retornou 10 mensagens\n{"finished_at":',
+            stderr="Regional Access Boundary HTTP request failed...\nGaia id not found...\n",
+        )
+
+    monkeypatch.setattr(smoke, "run", fake_run)
+    monkeypatch.setattr(
+        smoke,
+        "validate_firestore",
+        lambda project_id, account_id=smoke.DEFAULT_ACCOUNT_ID: FirestoreStatus(
+            emails=10,
+            classifications=10,
+            action_plans=0,
+            warnings=["Firestore sem action plans em accounts/pessoal_google/action_plans."],
+        ),
+    )
+    monkeypatch.setattr("sys.argv", ["smoke.py"])
+
+    assert smoke.main() == 0
+    output = capsys.readouterr().out
+    assert "Report final nao encontrado completo nos logs; validando Firestore." in output
+    assert "emails processados: 10" in output
+    assert "classificacoes: 10" in output
+    assert "action plans: 0" in output
+
+
+def test_main_fails_on_known_error_in_logs(monkeypatch, capsys):
+    def fake_run(command):
+        if command == ["make", "run-job"]:
+            return subprocess.CompletedProcess(command, 0, stdout="Execution [assistente-pessoal-diario-abc]\n", stderr="")
+        return subprocess.CompletedProcess(command, 0, stdout="RefreshError", stderr="")
+
+    monkeypatch.setattr(smoke, "run", fake_run)
+    monkeypatch.setattr("sys.argv", ["smoke.py"])
+
+    assert smoke.main() == 1
+    assert "Padrao proibido encontrado nos logs: RefreshError" in capsys.readouterr().out
