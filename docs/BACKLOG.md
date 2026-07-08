@@ -3,6 +3,19 @@
 Status: vivo
 Organizacao: por capacidade e sprint
 
+## Release 0.2 - Foundation Hardening
+
+Objetivo: fortalecer contratos e operacao antes de novos conectores.
+
+| Task | Prioridade | Dependencia | Criterio de aceite | Status |
+|---|---:|---|---|---|
+| 0.2.1 WorkItem central | Alta | EmailEntity | EmailEntity converte para WorkItem e pipeline registra work item conceitual | Concluido |
+| 0.2.2 ActionPlan auditavel | Alta | AutomationPlanner | ActionPlan tem id, source, timestamps, dry_run, status, payload e audit_metadata | Concluido |
+| 0.2.3 Config centralizada | Alta | Settings | PROJECT_ID, REGION, DRY_RUN, path de contas, flags e limites em app/config.py | Concluido |
+| 0.2.4 Feature flags | Media | Config centralizada | flags futuras existem e permanecem desligadas por padrao | Concluido |
+| 0.2.5 Observabilidade minima | Alta | DailyJob | run_id, contagens por etapa e schema_version persistidos | Concluido |
+| 0.2.6 Documentacao | Media | itens acima | README, arquitetura, runbook, backlog e review atualizados | Concluido |
+
 ## Sprint 1.6 - Operacao minima
 
 Objetivo: reduzir diagnostico manual e preparar rotina de deploy/smoke.
@@ -84,7 +97,10 @@ Objetivo: visualizacao operacional.
 | `make deploy make run-job` causa erro de alvo | Baixa | resolvido por `make release` |
 | Validacao Firestore ainda manual | Media | smoke usa fallback Firestore para emails e classifications |
 | Codex possui limite de uso | Alta | tasks pequenas e prompts enxutos |
+| `WorkItem` nao participava do pipeline real | Alta | Release 0.2 cria WorkItem conceitual a partir de EmailEntity |
+| `ActionPlan` tinha pouca auditabilidade | Alta | Release 0.2 adiciona id, source, timestamps e audit_metadata |
+| Observabilidade nao tinha run_id explicito | Alta | Release 0.2 adiciona run_id e contagens por etapa |
 
-## Proxima task operacional
+## Proxima release recomendada
 
-Sprint 1.6.1 consolida a camada operacional com testes unitarios, `make release` e documentacao alinhada ao codigo atual.
+Release 0.3 deve provar multi-conta real antes de novos dominios ou automacoes mutaveis.

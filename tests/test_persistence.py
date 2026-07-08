@@ -71,13 +71,15 @@ def test_save_email_creates_first_seen_for_new_email():
     persistence = object.__new__(FirestorePersistence)
     persistence.client = FakeClient(email_exists=False)
 
-    result = persistence.save_email(make_email())
+    result = persistence.save_email(make_email(), run_id="run-1")
 
     doc = persistence._account_document("acc").collection("emails").document("abc_123")
     payload = doc.payloads[-1]["payload"]
     assert result.existed is False
     assert "first_seen_at" in payload
     assert "last_seen_at" in payload
+    assert payload["run_id"] == "run-1"
+    assert payload["schema_version"] == "0.2"
 
 
 def test_save_email_updates_last_seen_for_existing_email_without_first_seen():
@@ -100,11 +102,27 @@ def test_save_classification_and_action_plan_use_account_subcollections():
     classification = Classification(Category.FINANCEIRO, Priority.ALTA, 0.8, "Financeiro.")
     action = ActionPlan("review_financial", "Revisar.", True, payload={"email_id": email.id})
 
-    persistence.save_classification(email, classification)
-    persistence.save_action_plan(email, action)
+    persistence.save_classification(email, classification, run_id="run-1")
+    persistence.save_action_plan(email, action, run_id="run-1")
 
     account_doc = persistence._account_document("acc")
     classification_doc = account_doc.collection("classifications").document("abc_123")
     action_doc = account_doc.collection("action_plans").document("abc_123")
     assert classification_doc.payloads[-1]["payload"]["category"] == "financeiro"
+    assert classification_doc.payloads[-1]["payload"]["run_id"] == "run-1"
+    assert classification_doc.payloads[-1]["payload"]["schema_version"] == "0.2"
     assert action_doc.payloads[-1]["payload"]["plans.review_financial"]["type"] == "review_financial"
+    assert action_doc.payloads[-1]["payload"]["plans.review_financial"]["run_id"] == "run-1"
+    assert action_doc.payloads[-1]["payload"]["schema_version"] == "0.2"
+
+
+def test_save_run_uses_explicit_run_id_when_available():
+    persistence = object.__new__(FirestorePersistence)
+    persistence.client = FakeClient()
+
+    result = persistence.save_run({"run_id": "run-1", "total": 1})
+
+    doc = persistence.client.collection("runs").document("run-1")
+    assert result == "run-1"
+    assert doc.payloads[-1]["payload"]["run_id"] == "run-1"
+    assert doc.payloads[-1]["payload"]["schema_version"] == "0.2"

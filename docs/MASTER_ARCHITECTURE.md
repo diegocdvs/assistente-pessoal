@@ -126,6 +126,7 @@ type
 account_id
 payload
 created_at
+schema_version
 ```
 
 Exemplos:
@@ -138,6 +139,8 @@ source=drive, type=document, payload=DocumentEntity
 ```
 
 A camada de IA deve operar preferencialmente sobre `WorkItem`, não sobre APIs específicas.
+
+Na Release 0.2, `EmailEntity` ja pode ser convertido para `WorkItem`. O pipeline Gmail continua recebendo `EmailEntity` do conector, mas cria um `WorkItem` conceitual no core para preparar Calendar, WhatsApp, IA e automacoes futuras sem alterar o `GmailConnector`.
 
 ### 5.3 Classification
 
@@ -187,11 +190,17 @@ Representa uma ação planejada, não executada.
 Campos mínimos:
 
 ```text
+id
+source
 type
 reason
 dry_run
 status
 payload
+created_at
+updated_at
+audit_metadata
+schema_version
 ```
 
 Estados possíveis:
@@ -205,6 +214,8 @@ failed
 ```
 
 Enquanto `DRY_RUN=true`, nenhum plano deve ser executado.
+
+Na Release 0.2, `ActionPlan` segue sem executor real. Os novos campos existem apenas para auditoria, rastreabilidade e compatibilidade futura.
 
 ## 6. Conectores
 
@@ -305,6 +316,30 @@ google-pessoal-client-secret-json
 google-pessoal-refresh-token
 ```
 
+## 7.1 Configuracao centralizada
+
+`app/config.py` centraliza a configuracao operacional basica:
+
+```text
+PROJECT_ID
+REGION
+DRY_RUN
+ACCOUNTS_CONFIG_PATH
+MAX_EMAILS_PER_PROVIDER
+```
+
+Feature flags preparatorias:
+
+```text
+OUTLOOK_ENABLED=false
+CALENDAR_ENABLED=false
+WHATSAPP_ENABLED=false
+AI_ENABLED=false
+AUTO_EXECUTION_ENABLED=false
+```
+
+Essas flags nao ativam conectores ou funcionalidades novas por si so. Elas apenas deixam a base pronta para releases futuras.
+
 ## 8. Persistence Layer
 
 Firestore deve ser acessado por uma camada própria, não diretamente pelo pipeline.
@@ -327,6 +362,7 @@ last_seen_at
 run_id
 hash
 version
+schema_version
 ```
 
 ### 8.1 Idempotência
@@ -432,10 +468,13 @@ O relatório deve ser gerado a partir do estado processado, não de chamadas dir
 Campos mínimos:
 
 ```text
+schema_version
+run_id
 started_at
 finished_at
 duration_seconds
 dry_run
+stage_counts
 accounts_total
 accounts
 total

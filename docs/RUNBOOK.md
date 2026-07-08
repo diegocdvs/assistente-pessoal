@@ -108,11 +108,36 @@ PY
 
 - Cloud Build termina com `STATUS: SUCCESS`.
 - Cloud Run Job termina com sucesso.
+- Logs mostram `run_id=run-...`.
 - Logs mostram `Gmail retornou 10 mensagens` ou contagem configurada.
 - `errors` no report esta vazio quando o JSON completo aparecer nos logs.
+- Report final contem `schema_version`, `run_id` e `stage_counts`.
 - Firestore mostra documentos em `emails` e `classifications`.
 - `action_plans` vazio aparece como `WARN`.
 - `DRY_RUN=true` permanece ativo.
+
+## 10.1 Release 0.2 - Foundation Hardening
+
+A Release 0.2 nao adiciona conectores nem executa acoes reais. Ela adiciona:
+
+- `WorkItem` conceitual criado a partir de `EmailEntity`;
+- `ActionPlan` com campos auditaveis;
+- feature flags desligadas por padrao;
+- `run_id` explicito;
+- `schema_version` em objetos persistidos;
+- contagens por etapa em `stage_counts`.
+
+Feature flags reconhecidas:
+
+```bash
+OUTLOOK_ENABLED=false
+CALENDAR_ENABLED=false
+WHATSAPP_ENABLED=false
+AI_ENABLED=false
+AUTO_EXECUTION_ENABLED=false
+```
+
+Essas flags nao devem ativar funcionalidade nova nesta release.
 
 ## 11. Erros conhecidos
 

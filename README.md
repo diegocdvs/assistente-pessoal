@@ -2,6 +2,19 @@
 
 Assistente pessoal executado como Cloud Run Job para ler contas configuradas, normalizar mensagens, classificar, persistir, planejar acoes seguras e gerar relatorio final.
 
+## Release 0.2 - Foundation Hardening
+
+A Release 0.2 fortalece a fundacao antes de novos conectores:
+
+- `EmailEntity` pode ser convertido para `WorkItem`;
+- o pipeline cria `WorkItem` conceitual sem quebrar o fluxo Gmail atual;
+- `ActionPlan` possui campos auditaveis;
+- `Settings` centraliza projeto, regiao, `DRY_RUN`, path de contas, feature flags e limites;
+- toda execucao possui `run_id` explicito;
+- objetos persistidos incluem `schema_version` quando aplicavel.
+
+Nenhuma nova integracao foi ativada nesta release.
+
 ## Sprint 1.5
 
 A base foi consolidada em um pipeline desacoplado:
@@ -47,14 +60,39 @@ recipients, snippet, labels, received_at, raw_headers, metadata
 `WorkItem`:
 
 ```text
-id, source, type, account_id, payload, created_at
+id, source, type, account_id, payload, created_at, schema_version
 ```
 
 `ActionPlan`:
 
 ```text
-type, reason, dry_run, status, payload
+type, reason, dry_run, status, payload, id, source, created_at, updated_at, audit_metadata, schema_version
 ```
+
+`ActionPlan` continua sendo apenas planejado. Nao ha executor real nesta release.
+
+## Configuracao central
+
+`app/config.py` centraliza:
+
+- `PROJECT_ID`
+- `REGION`
+- `DRY_RUN`
+- `ACCOUNTS_CONFIG_PATH`
+- limites basicos, como `MAX_EMAILS_PER_PROVIDER`
+- feature flags preparatorias
+
+Feature flags iniciais:
+
+```text
+OUTLOOK_ENABLED=false
+CALENDAR_ENABLED=false
+WHATSAPP_ENABLED=false
+AI_ENABLED=false
+AUTO_EXECUTION_ENABLED=false
+```
+
+Essas flags nao ativam novas funcionalidades na Release 0.2.
 
 ## Classificacao
 
@@ -91,6 +129,8 @@ accounts/{account_id}/action_plans/{message_id}
 ```
 
 A persistencia usa merge/upsert. Emails existentes atualizam `last_seen_at`; emails novos recebem `first_seen_at`. Isso evita duplicacao por `message_id`.
+
+O report salvo em `runs/{run_id}` possui `run_id` explicito. Emails, classificacoes e action plans recebem `run_id` quando persistidos pelo pipeline. Os objetos incluem `schema_version` para facilitar evolucao futura.
 
 ## Seguranca
 

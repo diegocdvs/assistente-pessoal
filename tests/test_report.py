@@ -34,14 +34,19 @@ def test_reporter_summarizes_pipeline_results():
     )
 
     report = Reporter().build(
+        run_id="run-test",
         started_at=datetime(2026, 7, 8, 10, 0, tzinfo=timezone.utc),
         finished_at=datetime(2026, 7, 8, 10, 0, 5, tzinfo=timezone.utc),
         dry_run=True,
         accounts=[account],
         results=[result],
         errors=[],
+        stage_counts={"emails_fetched": 1},
     )
 
+    assert report["schema_version"] == "0.2"
+    assert report["run_id"] == "run-test"
+    assert report["stage_counts"] == {"emails_fetched": 1}
     assert report["total_by_account"] == {"acc": 1}
     assert report["total_by_category"] == {"financeiro": 1}
     assert report["total_by_priority"] == {"alta": 1}

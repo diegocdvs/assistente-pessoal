@@ -22,13 +22,13 @@ class PersistenceProtocol(Protocol):
     def save_run(self, report: dict[str, Any]) -> str:
         pass
 
-    def save_email(self, email: EmailEntity) -> PersistenceResult:
+    def save_email(self, email: EmailEntity, run_id: str | None = None) -> PersistenceResult:
         pass
 
-    def save_classification(self, email: EmailEntity, classification: Classification) -> str:
+    def save_classification(self, email: EmailEntity, classification: Classification, run_id: str | None = None) -> str:
         pass
 
-    def save_action_plan(self, email: EmailEntity, action_plan: ActionPlan) -> str:
+    def save_action_plan(self, email: EmailEntity, action_plan: ActionPlan, run_id: str | None = None) -> str:
         pass
 
 
@@ -41,11 +41,13 @@ class ReporterProtocol(Protocol):
     def build(
         self,
         *,
+        run_id: str,
         started_at: datetime,
         finished_at: datetime,
         dry_run: bool,
         accounts: list[MailAccount],
         results: list[PipelineResult],
         errors: list[dict[str, str]],
+        stage_counts: dict[str, int] | None = None,
     ) -> dict[str, Any]:
         pass

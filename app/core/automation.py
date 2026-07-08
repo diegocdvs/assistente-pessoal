@@ -71,4 +71,14 @@ class AutomationPlanner:
                 "category": classification.category.value,
                 "priority": classification.priority.value,
             },
+            id=f"{email.account_id}:{email.id}:{action_type}".replace("/", "_"),
+            source="rule_based_classifier",
+            audit_metadata={
+                "email_id": email.id,
+                "thread_id": email.thread_id,
+                "account_id": email.account_id,
+                "provider": email.provider,
+                "classification_reason": classification.reason,
+                "classification_confidence": classification.confidence,
+            },
         )

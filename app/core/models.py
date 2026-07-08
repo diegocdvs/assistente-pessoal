@@ -4,6 +4,10 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
+from uuid import uuid4
+
+
+SCHEMA_VERSION = "0.2"
 
 
 class Category(str, Enum):
@@ -48,7 +52,16 @@ class EmailEntity:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return {**asdict(self), "schema_version": SCHEMA_VERSION}
+
+    def to_work_item(self) -> "WorkItem":
+        return WorkItem(
+            id=f"{self.provider}:{self.id}",
+            source=self.provider,
+            type="email",
+            account_id=self.account_id,
+            payload=self.to_dict(),
+        )
 
 
 @dataclass(frozen=True)
@@ -61,7 +74,7 @@ class WorkItem:
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return {**asdict(self), "schema_version": SCHEMA_VERSION}
 
 
 @dataclass(frozen=True)
@@ -79,6 +92,7 @@ class Classification:
             "confidence": self.confidence,
             "reason": self.reason,
             "possible_event": self.possible_event,
+            "schema_version": SCHEMA_VERSION,
         }
 
 
@@ -89,9 +103,18 @@ class ActionPlan:
     dry_run: bool
     status: str = "planned"
     payload: dict[str, Any] = field(default_factory=dict)
+    id: str | None = None
+    source: str = "automation_planner"
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    audit_metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.id is None:
+            object.__setattr__(self, "id", f"action:{self.type}:{uuid4().hex}")
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return {**asdict(self), "schema_version": SCHEMA_VERSION}
 
 
 @dataclass(frozen=True)
@@ -100,10 +123,12 @@ class PipelineResult:
     classification: Classification
     action_plans: list[ActionPlan]
     existed: bool = False
+    work_item: WorkItem | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "email": self.email.to_dict(),
+            "work_item": self.work_item.to_dict() if self.work_item else None,
             "classification": self.classification.to_dict(),
             "action_plans": [action.to_dict() for action in self.action_plans],
             "existed": self.existed,

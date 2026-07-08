@@ -5,19 +5,21 @@ from datetime import datetime
 from typing import Any
 
 from app.core.accounts import MailAccount
-from app.core.models import PipelineResult
+from app.core.models import SCHEMA_VERSION, PipelineResult
 
 
 class Reporter:
     def build(
         self,
         *,
+        run_id: str,
         started_at: datetime,
         finished_at: datetime,
         dry_run: bool,
         accounts: list[MailAccount],
         results: list[PipelineResult],
         errors: list[dict[str, str]],
+        stage_counts: dict[str, int] | None = None,
     ) -> dict[str, Any]:
         by_account = Counter(result.email.account_id for result in results)
         by_category = Counter(result.classification.category.value for result in results)
@@ -33,10 +35,13 @@ class Reporter:
         ]
 
         return {
+            "schema_version": SCHEMA_VERSION,
+            "run_id": run_id,
             "started_at": started_at.isoformat(),
             "finished_at": finished_at.isoformat(),
             "duration_seconds": round((finished_at - started_at).total_seconds(), 3),
             "dry_run": dry_run,
+            "stage_counts": stage_counts or {},
             "accounts_total": len(accounts),
             "accounts": [
                 {
