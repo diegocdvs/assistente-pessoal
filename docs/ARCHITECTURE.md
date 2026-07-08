@@ -1,87 +1,123 @@
 # Arquitetura do Assistente Pessoal
 
-## Objetivo
-
-Executar uma rotina diaria no Google Cloud para ler emails de multiplas contas, classificar mensagens por regras explicitas e persistir historico no Firestore.
-
-## Fluxo Sprint 1
+## Pipeline consolidado
 
 ```text
-Cloud Run Job
-  -> app.main
-  -> DailyJob
-  -> AccountManager
-  -> GmailConnector
-  -> Gmail API
-  -> Rule Classifier
-  -> FirestoreStore
+Connector
+  -> EmailEntity
+  -> Classifier
+  -> Persistence
+  -> Automation
+  -> Report
 ```
 
-## Componentes
+O objetivo da refatoracao e manter o dominio independente de APIs externas antes da entrada de Calendar, Outlook, WhatsApp ou IA.
 
-### AccountManager
+## Contratos
 
-`app/core/accounts.py` carrega `config/accounts.yaml`, valida a estrutura e entrega apenas contas habilitadas para o job. Uma nova conta deve exigir somente uma nova entrada YAML, sem alteracao de codigo.
+### Connector
 
-### GmailConnector
+Conectores ficam em `app/connectors`. Eles leem provedores externos e retornam dados normalizados.
 
-`app/connectors/gmail.py` usa:
+O `GmailConnector`:
 
-- `google-api-python-client`;
-- refresh token;
-- Google Secret Manager;
-- secrets derivados de `secret_prefix`.
+- usa Secret Manager e refresh token;
+- usa `gmail.readonly`;
+- chama apenas endpoints de leitura;
+- converte payloads Gmail para `EmailEntity`;
+- guarda dados especificos do Gmail em `metadata`.
 
-Durante a execucao, o conector usa escopo `gmail.readonly` e chama somente `messages.list` e `messages.get`.
+### EmailEntity
+
+`app/core/models.py` define a entidade interna do pipeline:
+
+```text
+id, provider, account_id, account_email, thread_id, subject, sender,
+recipients, snippet, labels, received_at, raw_headers, metadata
+```
+
+Camadas de dominio nao dependem de payloads Gmail.
 
 ### Classifier
 
-`app/core/classifier.py` aplica regras deterministicas iniciais:
+`app/core/classifier.py` contem o `RuleBasedClassifier`.
 
-- seguranca: prioridade critica;
-- financeiro, evento e trabalho: prioridade importante;
-- compra e outros: prioridade informativa;
-- newsletter e promocoes: ruido.
+Saida:
 
-O classificador pode indicar possivel evento, mas a Sprint 1 apenas registra essa informacao.
+- `category`;
+- `priority`;
+- `reason`;
+- `confidence`.
 
-### FirestoreStore
+Categorias suportadas:
 
-`app/storage/firestore_store.py` persiste:
+```text
+financeiro, compra, entrega, evento, trabalho, seguranca, promocao,
+newsletter, social, educacao, viagem, saude, outros
+```
 
-- `runs`: resumo da execucao;
-- `processed_emails`: mensagem, classificacao, conta, provedor e acoes observacionais.
+Prioridades suportadas:
 
-## Multi-contas
+```text
+critica, alta, normal, baixa, ruido
+```
 
-Cada conta contem:
+### Persistence
 
-- `id`;
-- `label`;
-- `provider`;
-- `email`;
-- `enabled`;
-- `secret_prefix`;
-- `max_emails`;
-- `calendar.enabled`;
-- `firestore.enabled`;
-- `policies`.
+`app/storage/persistence.py` implementa `FirestorePersistence`.
 
-Providers planejados:
+Estrutura:
 
-- `gmail`: implementado na Sprint 1;
-- `outlook`: reservado para sprint futura;
-- Google Calendar, WhatsApp e IA: preparados no desenho, sem execucao mutavel nesta sprint.
+```text
+runs/
+accounts/<account_id>/emails/<message_id>
+```
+
+O metodo `upsert_email` faz merge para evitar duplicacao. Emails existentes recebem novo `last_seen_at`; emails novos tambem recebem `first_seen_at`.
+
+### Automation
+
+`app/core/automation.py` cria `ActionPlan` sem executar nada.
+
+Formato:
+
+```text
+type, reason, dry_run, status
+```
+
+Por enquanto todas as acoes ficam planejadas e com `dry_run=true`.
+
+### Report
+
+`app/core/report.py` monta o relatorio final:
+
+- total por conta;
+- total por categoria;
+- total por prioridade;
+- erros;
+- acoes planejadas;
+- tempo de execucao.
+
+## Orquestracao
+
+`DailyJob` coordena:
+
+1. Carregar contas habilitadas.
+2. Buscar emails por conector.
+3. Classificar `EmailEntity`.
+4. Planejar automacoes.
+5. Persistir email/classificacao/acoes.
+6. Gerar e persistir relatorio do run.
 
 ## Politica de seguranca
 
-A Sprint 1 e somente leitura para email:
+A execucao segue somente leitura:
 
-- nao marca como lido;
-- nao arquiva;
-- nao apaga;
-- nao altera labels;
-- nao envia email;
-- nao cria eventos.
+- nao marcar lido;
+- nao mover;
+- nao excluir;
+- nao criar evento;
+- nao enviar WhatsApp;
+- nao executar automacoes.
 
-Acoes retornadas no relatorio sao observacionais, por exemplo destacar alerta critico ou registrar possivel evento para revisao futura.
+O projeto continua preparado para evoluir essas etapas com controles explicitos por conta.
