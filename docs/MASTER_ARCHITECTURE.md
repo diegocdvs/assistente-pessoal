@@ -221,7 +221,7 @@ Na Release 0.2, `ActionPlan` segue sem executor real. Os novos campos existem ap
 
 ### 6.1 Interface desejada
 
-Todo conector deve seguir uma interface conceitual parecida com:
+Todo conector deve seguir a interface comum definida em `app/connectors/base.py`:
 
 ```python
 class Connector:
@@ -247,6 +247,8 @@ O conector não deve:
 - executar ações de automação;
 - enviar relatório.
 
+Na Release 0.3A, `gmail` e `outlook` compartilham esse contrato. Gmail segue funcional; Outlook existe apenas como stub desabilitado.
+
 ### 6.2 GmailConnector
 
 Responsável por:
@@ -261,9 +263,27 @@ Não deve marcar como lido, mover, excluir ou arquivar enquanto não houver um e
 
 ### 6.3 OutlookConnector futuro
 
-Deve implementar a mesma interface do GmailConnector.
+Status atual: stub arquitetural na Release 0.3A.
+
+O `OutlookConnector` implementa a mesma interface de conector, mas nao chama Microsoft Graph real. Ele existe para validar:
+
+- contrato do provider `outlook`;
+- normalizacao de payload fake do Microsoft Graph;
+- conversao `EmailEntity -> WorkItem`;
+- registro no `ConnectorManager`.
+
+O fluxo validado por testes e:
+
+```text
+Graph payload fake
+  -> OutlookNormalizer
+  -> EmailEntity
+  -> WorkItem
+```
 
 A integração Outlook não deve exigir mudanças no `DailyJob` além de registrar o conector no `ConnectorManager`.
+
+Detalhes estao em `docs/OUTLOOK_DESIGN.md`.
 
 ### 6.4 CalendarConnector futuro
 

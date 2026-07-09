@@ -30,11 +30,13 @@ As implementacoes padrao sao montadas no construtor, mas o job nao instancia `Gm
 `app/connectors/manager.py` registra conectores por provider.
 
 - `gmail`: implementado via `GmailConnector`.
-- `outlook`: provider planejado.
+- `outlook`: stub implementado via `OutlookConnector`, desabilitado por padrao.
 - `calendar`: provider planejado.
 - `whatsapp`: provider planejado.
 
 Conectores retornam `EmailEntity` ou entidade equivalente de dominio, nunca payload cru da API externa.
+
+Na Release 0.3A, payloads fake do Microsoft Graph sao normalizados por `OutlookNormalizer` para `EmailEntity` e depois convertidos para `WorkItem`. Nao ha chamada real ao Graph.
 
 ## EmailEntity
 
