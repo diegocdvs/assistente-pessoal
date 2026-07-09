@@ -1,187 +1,21 @@
-# Outlook Design - Release 0.3A
+# Outlook Design - Release 0.3B
 
-Status: foundation stub  
-Escopo: preparar arquitetura para Outlook sem Microsoft Graph real  
+Status: integracao Microsoft Graph read-only atras de feature flag
 Provider: `outlook`
 
 ## Objetivo
 
-A Release 0.3A prepara o Assistente Pessoal para suportar Outlook como segundo provedor de e-mail, sem exigir Azure, credenciais Microsoft ou chamadas reais ao Microsoft Graph.
+Adicionar Outlook como segundo provedor real de e-mail sem alterar o pipeline principal e sem exigir infraestrutura nova.
 
-O objetivo e validar contratos:
-
-```text
-Microsoft Graph payload fake
-        |
-        v
-OutlookNormalizer
-        |
-        v
-EmailEntity
-        |
-        v
-WorkItem
-```
-
-## Arquitetura
-
-Arquivos principais:
+Fluxo:
 
 ```text
-app/connectors/base.py
-app/connectors/outlook.py
-app/connectors/manager.py
-tests/test_outlook_connector.py
-```
-
-`app/connectors/base.py` define a interface comum:
-
-```python
-class Connector(Protocol):
-    provider: str
-
-    def fetch_recent(self, account) -> list[EmailEntity]:
-        ...
-```
-
-`OutlookConnector` implementa essa interface, mas permanece em modo stub.
-
-## Comportamento atual
-
-Por padrao:
-
-```text
-OUTLOOK_ENABLED=false
-```
-
-E:
-
-```python
-OutlookConnector(enabled=False)
-```
-
-Nesse estado, `fetch_recent()` retorna lista vazia e nao faz chamadas externas.
-
-Nao ha:
-
-- OAuth Microsoft;
-- Graph client real;
-- chamadas HTTP;
-- Azure app registration obrigatoria;
-- leitura real de mailbox;
-- mutacao de e-mails;
-- automacao.
-
-## Normalizacao
-
-O `OutlookNormalizer` converte payloads fake compatíveis com Microsoft Graph para `EmailEntity`.
-
-Campos Graph usados:
-
-```text
-id
-conversationId
-subject
-from.emailAddress
-toRecipients
-ccRecipients
-bodyPreview
-categories
-receivedDateTime
-internetMessageHeaders
-importance
-isRead
-webLink
-internetMessageId
-changeKey
-```
-
-Mapeamento:
-
-```text
-Graph id                 -> EmailEntity.id
-conversationId           -> EmailEntity.thread_id
-subject                  -> EmailEntity.subject
-from.emailAddress        -> EmailEntity.sender
-toRecipients/ccRecipients -> EmailEntity.recipients
-bodyPreview              -> EmailEntity.snippet
-categories               -> EmailEntity.labels
-receivedDateTime         -> EmailEntity.received_at
-internetMessageHeaders   -> EmailEntity.raw_headers
-importance/isRead/etc.   -> EmailEntity.metadata
-```
-
-Depois disso, `EmailEntity.to_work_item()` gera:
-
-```text
-source=outlook
-type=email
-payload=EmailEntity.to_dict()
-```
-
-## OAuth esperado futuramente
-
-A integracao real deve usar Microsoft Entra ID e Microsoft Graph.
-
-Escopos esperados inicialmente:
-
-```text
-Mail.Read
-offline_access
-```
-
-Escopos mutaveis, como `Mail.ReadWrite`, nao devem ser usados enquanto nao existir uma decisao explicita de automacao e seguranca.
-
-## Secrets esperados futuramente
-
-Para uma conta com:
-
-```yaml
-secret_prefix: outlook-profissional
-```
-
-Secrets provaveis:
-
-```text
-outlook-profissional-tenant-id
-outlook-profissional-client-id
-outlook-profissional-client-secret
-outlook-profissional-refresh-token
-```
-
-Esses secrets ainda nao sao lidos na Release 0.3A.
-
-## Endpoints esperados futuramente
-
-Leitura inicial:
-
-```text
-GET https://graph.microsoft.com/v1.0/me/messages
-```
-
-Parametros provaveis:
-
-```text
-$top
-$select=id,conversationId,subject,from,toRecipients,ccRecipients,bodyPreview,categories,receivedDateTime,internetMessageHeaders,importance,isRead,webLink,internetMessageId,changeKey
-$orderby=receivedDateTime desc
-```
-
-## Fluxo futuro
-
-```text
-AccountManager
-        |
-        v
-ConnectorManager
+Microsoft Graph /me/messages
         |
         v
 OutlookConnector
         |
         v
-Microsoft Graph
-        |
-        v
 OutlookNormalizer
         |
         v
@@ -191,34 +25,106 @@ EmailEntity
 WorkItem
         |
         v
-Classifier
-        |
-        v
-Persistence
-        |
-        v
-AutomationPlanner
-        |
-        v
-Report
+Classifier -> Persistence -> AutomationPlanner -> Report
 ```
 
-## Limitacoes da Release 0.3A
+## Contratos
 
-- Outlook nao processa contas reais.
-- `OutlookConnector` nao autentica.
-- `OutlookConnector` nao chama Microsoft Graph.
-- `OUTLOOK_ENABLED` permanece desligado por padrao.
-- `ConnectorManager` reconhece `outlook`, mas o stub desabilitado retorna lista vazia.
-- Testes usam payloads fake do Graph.
+Todos os conectores implementam:
 
-## Criterios de seguranca
+```python
+provider: str
+fetch_recent(account) -> list[EmailEntity]
+```
 
-Enquanto nao houver release especifica de integracao real:
+`OutlookConnector` nao conhece MSAL. Ele depende de:
 
-- nao adicionar credenciais Azure;
-- nao alterar IAM/GCP;
-- nao alterar OAuth Google;
-- nao executar automacoes;
-- nao marcar e-mails como lidos;
-- nao mover, arquivar ou excluir mensagens.
+- `OAuthProvider`: entrega access token.
+- `OutlookMessageClient`: le mensagens normalizadas do provider externo.
+- `OutlookNormalizer`: converte payload Graph em `EmailEntity`.
+
+## OAuth
+
+O fluxo escolhido e Authorization Code Flow com Microsoft Entra ID para gerar token cache inicial, seguido por `acquire_token_silent()` do MSAL no runtime.
+
+Motivo: `GET /me/messages` e delegated/user context. Client Credentials e app-only e nao representa `/me`.
+
+Escopos:
+
+```text
+offline_access
+https://graph.microsoft.com/Mail.Read
+```
+
+## Secrets
+
+Para `secret_prefix: outlook-profissional`:
+
+```text
+outlook-profissional-tenant-id
+outlook-profissional-client-id
+outlook-profissional-client-secret
+outlook-profissional-token-cache
+```
+
+O app apenas le secrets existentes.
+
+## Graph client
+
+Endpoint:
+
+```text
+GET https://graph.microsoft.com/v1.0/me/messages
+```
+
+Campos selecionados:
+
+```text
+id, conversationId, changeKey, internetMessageId, subject, bodyPreview,
+receivedDateTime, importance, isRead, webLink, categories, from,
+toRecipients, ccRecipients, internetMessageHeaders
+```
+
+## Normalizacao
+
+```text
+Graph id                  -> EmailEntity.id
+conversationId            -> EmailEntity.thread_id
+subject                   -> EmailEntity.subject
+from.emailAddress         -> EmailEntity.sender
+toRecipients/ccRecipients -> EmailEntity.recipients
+bodyPreview               -> EmailEntity.snippet
+categories                -> EmailEntity.labels
+receivedDateTime          -> EmailEntity.received_at
+internetMessageHeaders    -> EmailEntity.raw_headers
+importance/isRead/etc.    -> EmailEntity.metadata
+```
+
+## Feature flag
+
+```text
+OUTLOOK_ENABLED=false
+```
+
+Esse e o padrao. Quando falso, `ConnectorManager` registra Outlook desabilitado e `fetch_recent()` retorna lista vazia.
+
+Quando verdadeiro, `ConnectorManager` injeta:
+
+- `MicrosoftOAuthProvider`
+- `MicrosoftGraphMailClient`
+- `OutlookConnector(enabled=True)`
+
+## Limites
+
+Nao implementado:
+
+- envio;
+- mover, arquivar, excluir;
+- marcar como lido;
+- anexos;
+- Calendar;
+- WhatsApp;
+- IA;
+- automacoes reais.
+
+Outlook continua read-only e passa pelo mesmo `DRY_RUN` operacional do projeto.

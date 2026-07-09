@@ -32,6 +32,26 @@ Documento tecnico:
 docs/OUTLOOK_DESIGN.md
 ```
 
+## Release 0.3B - Microsoft Graph Integration
+
+A Release 0.3B adiciona Outlook real em modo somente leitura, ainda desligado por padrao:
+
+- `OAuthProvider` abstrai autenticacao;
+- `MicrosoftOAuthProvider` usa MSAL e token cache serializado no Secret Manager;
+- `MicrosoftGraphMailClient` le `GET /me/messages`;
+- `OutlookConnector` nao conhece MSAL e retorna `EmailEntity`;
+- `ConnectorManager` injeta Outlook real apenas com `OUTLOOK_ENABLED=true`;
+- testes usam mocks e nao chamam Microsoft Graph.
+
+Docs:
+
+```text
+docs/OUTLOOK_DESIGN.md
+docs/setup/AZURE_SETUP.md
+docs/adr/ADR-008-microsoft-graph-oauth.md
+BOOTSTRAP.md
+```
+
 ## Sprint 1.5
 
 A base foi consolidada em um pipeline desacoplado:
@@ -58,8 +78,10 @@ Ele nao instancia `GmailConnector` diretamente.
 ## Camadas
 
 - `app/connectors/gmail.py`: conector Gmail que retorna `EmailEntity` e nao executa mutacoes.
-- `app/connectors/outlook.py`: conector Outlook stub, sem chamadas reais ao Microsoft Graph.
-- `app/connectors/manager.py`: registra conectores por provider. Hoje reconhece `gmail` e `outlook`; `outlook` permanece desabilitado.
+- `app/connectors/outlook.py`: conector Outlook read-only, desabilitado por padrao.
+- `app/auth/microsoft.py`: provider OAuth Microsoft via MSAL.
+- `app/integrations/microsoft_graph.py`: cliente HTTP read-only para Microsoft Graph.
+- `app/connectors/manager.py`: registra conectores por provider. Hoje reconhece `gmail` e `outlook`; `outlook` permanece desabilitado salvo `OUTLOOK_ENABLED=true`.
 - `app/core/models.py`: `EmailEntity`, `WorkItem`, `Classification`, `ActionPlan` e `PipelineResult`.
 - `app/core/classifier.py`: classificador por regras com categoria, prioridade, confianca, motivo e `possible_event`.
 - `app/storage/persistence.py`: persistencia Firestore com upsert/deduplicacao.
@@ -110,9 +132,7 @@ AI_ENABLED=false
 AUTO_EXECUTION_ENABLED=false
 ```
 
-Essas flags nao ativam novas funcionalidades na Release 0.2.
-
-Na Release 0.3A, `OUTLOOK_ENABLED=false` continua sendo o comportamento esperado. O stub Outlook existe apenas para validar contratos e normalizacao com payloads fake.
+`OUTLOOK_ENABLED=false` continua sendo o comportamento esperado em producao. Com `OUTLOOK_ENABLED=true`, Outlook usa Microsoft Graph em modo somente leitura.
 
 ## Classificacao
 
@@ -189,6 +209,28 @@ Secrets esperados:
 <secret_prefix>-refresh-token
 ```
 
+Para adicionar uma conta Outlook:
+
+```yaml
+accounts:
+  - id: profissional_outlook
+    label: Profissional
+    provider: outlook
+    email: pessoa@example.com
+    enabled: false
+    secret_prefix: outlook-profissional
+    max_emails: 10
+```
+
+Secrets esperados:
+
+```text
+<secret_prefix>-tenant-id
+<secret_prefix>-client-id
+<secret_prefix>-client-secret
+<secret_prefix>-token-cache
+```
+
 ## Testes
 
 ```bash
@@ -261,4 +303,4 @@ Verifique no Firestore:
 
 ## Infraestrutura
 
-Dockerfile, Makefile, Cloud Build, Cloud Run e infraestrutura GCP permanecem inalterados.
+Dockerfile, Cloud Build, Cloud Run e infraestrutura GCP permanecem inalterados. O `Makefile` apenas seleciona automaticamente `.venv/bin/python` quando disponivel e falha de forma clara se dependencias locais estiverem ausentes.

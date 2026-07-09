@@ -23,6 +23,32 @@ class FakeAccountManager:
         ]
 
 
+class FakeMultiProviderAccountManager:
+    def enabled_accounts(self):
+        return [
+            MailAccount(
+                id="pessoal",
+                label="Pessoal",
+                provider="gmail",
+                email="pessoal@example.com",
+                enabled=True,
+                secret_prefix="google-pessoal",
+                max_emails=2,
+                policies=AccountPolicies(),
+            ),
+            MailAccount(
+                id="profissional",
+                label="Profissional",
+                provider="outlook",
+                email="profissional@example.com",
+                enabled=True,
+                secret_prefix="outlook-profissional",
+                max_emails=2,
+                policies=AccountPolicies(),
+            ),
+        ]
+
+
 class FakeConnectorManager:
     def __init__(self):
         self.accounts = []
@@ -100,3 +126,22 @@ def test_daily_job_runs_decoupled_pipeline_and_report():
     assert report["planned_actions"][0]["dry_run"] is True
     assert report["planned_actions"][0]["id"] == "pessoal:msg-1:review_high_priority"
     assert report["errors"] == []
+
+
+def test_daily_job_pipeline_accepts_outlook_work_items():
+    connector_manager = FakeConnectorManager()
+    persistence = FakePersistence()
+    job = DailyJob(
+        Settings(project_id="project", accounts_config_path="unused", dry_run=True),
+        account_manager=FakeMultiProviderAccountManager(),
+        connector_manager=connector_manager,
+        persistence=persistence,
+    )
+
+    report = job.run()
+
+    assert connector_manager.accounts == ["pessoal", "profissional"]
+    assert len(persistence.saved_emails) == 2
+    assert persistence.saved_emails[1][0].provider == "outlook"
+    assert report["total_by_account"] == {"pessoal": 1, "profissional": 1}
+    assert report["stage_counts"]["work_items_created"] == 2

@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Protocol
 
+from app.auth.oauth import OAuthProvider, StaticOAuthProvider
 from app.core.accounts import MailAccount
 from app.core.models import EmailEntity
 
@@ -81,6 +82,19 @@ class OutlookNormalizer:
         )
 
 
+class OutlookMessageClient(Protocol):
+    def fetch_recent_messages(self, *, access_token: str, max_results: int) -> list[dict[str, Any]]:
+        pass
+
+
+@dataclass
+class StaticOutlookMessageClient:
+    messages: list[dict[str, Any]]
+
+    def fetch_recent_messages(self, *, access_token: str, max_results: int) -> list[dict[str, Any]]:
+        return self.messages[:max_results]
+
+
 class OutlookConnector:
     provider = "outlook"
 
@@ -89,20 +103,35 @@ class OutlookConnector:
         *,
         enabled: bool = False,
         normalizer: OutlookNormalizer | None = None,
+        oauth_provider: OAuthProvider | None = None,
+        message_client: OutlookMessageClient | None = None,
         graph_messages: list[dict[str, Any]] | None = None,
     ) -> None:
         self.enabled = enabled
         self.normalizer = normalizer or OutlookNormalizer()
-        self._graph_messages = graph_messages or []
+        self.oauth_provider = oauth_provider
+        self.message_client = message_client
+        if graph_messages is not None:
+            self.oauth_provider = self.oauth_provider or StaticOAuthProvider()
+            self.message_client = self.message_client or StaticOutlookMessageClient(graph_messages)
 
     def fetch_recent(self, account: MailAccount) -> list[EmailEntity]:
         if not self.enabled:
-            logger.info("OutlookConnector stub desabilitado para conta %s.", account.id)
+            logger.info("OutlookConnector desabilitado para conta %s.", account.id)
             return []
+
+        if self.oauth_provider is None or self.message_client is None:
+            raise RuntimeError("OutlookConnector habilitado sem OAuthProvider ou cliente de mensagens.")
+
+        access_token = self.oauth_provider.get_access_token(account)
+        graph_messages = self.message_client.fetch_recent_messages(
+            access_token=access_token,
+            max_results=account.max_emails,
+        )
 
         return [
             self.normalizer.to_email_entity(account, payload)
-            for payload in self._graph_messages[: account.max_emails]
+            for payload in graph_messages
         ]
 
 
