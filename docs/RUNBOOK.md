@@ -139,6 +139,30 @@ AUTO_EXECUTION_ENABLED=false
 
 Essas flags nao devem ativar funcionalidade nova nesta release.
 
+## 10.2 Release 0.3A - Outlook Foundation
+
+A Release 0.3A adiciona somente a fundacao multi-provider:
+
+- `ConnectorManager` reconhece `gmail` e `outlook`;
+- `OutlookConnector` existe em modo stub;
+- payloads fake do Microsoft Graph sao normalizados em testes;
+- `OUTLOOK_ENABLED=false` permanece o padrao esperado;
+- nenhuma credencial Azure e necessaria;
+- nenhuma chamada real ao Microsoft Graph e feita.
+
+Validacao local esperada:
+
+```bash
+python -m pytest
+python -m compileall app scripts
+```
+
+Para detalhes de desenho, consulte:
+
+```text
+docs/OUTLOOK_DESIGN.md
+```
+
 ## 11. Erros conhecidos
 
 ### `invalid_scope`

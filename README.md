@@ -15,6 +15,23 @@ A Release 0.2 fortalece a fundacao antes de novos conectores:
 
 Nenhuma nova integracao foi ativada nesta release.
 
+## Release 0.3A - Multi Provider Foundation (Outlook)
+
+A Release 0.3A prepara Outlook como segundo provider sem conectar ao Microsoft Graph real:
+
+- `app/connectors/base.py` define a interface comum de conectores;
+- `app/connectors/outlook.py` cria `OutlookConnector` em modo stub;
+- `OutlookNormalizer` converte payloads fake do Microsoft Graph para `EmailEntity`;
+- `EmailEntity.to_work_item()` completa o fluxo `Graph -> EmailEntity -> WorkItem`;
+- `ConnectorManager` reconhece `gmail` e `outlook`;
+- Outlook permanece desabilitado por padrao e nao exige credenciais Azure.
+
+Documento tecnico:
+
+```text
+docs/OUTLOOK_DESIGN.md
+```
+
 ## Sprint 1.5
 
 A base foi consolidada em um pipeline desacoplado:
@@ -41,7 +58,8 @@ Ele nao instancia `GmailConnector` diretamente.
 ## Camadas
 
 - `app/connectors/gmail.py`: conector Gmail que retorna `EmailEntity` e nao executa mutacoes.
-- `app/connectors/manager.py`: registra conectores por provider. Hoje registra `gmail`; a estrutura esta pronta para `outlook`, `calendar` e `whatsapp`.
+- `app/connectors/outlook.py`: conector Outlook stub, sem chamadas reais ao Microsoft Graph.
+- `app/connectors/manager.py`: registra conectores por provider. Hoje reconhece `gmail` e `outlook`; `outlook` permanece desabilitado.
 - `app/core/models.py`: `EmailEntity`, `WorkItem`, `Classification`, `ActionPlan` e `PipelineResult`.
 - `app/core/classifier.py`: classificador por regras com categoria, prioridade, confianca, motivo e `possible_event`.
 - `app/storage/persistence.py`: persistencia Firestore com upsert/deduplicacao.
@@ -93,6 +111,8 @@ AUTO_EXECUTION_ENABLED=false
 ```
 
 Essas flags nao ativam novas funcionalidades na Release 0.2.
+
+Na Release 0.3A, `OUTLOOK_ENABLED=false` continua sendo o comportamento esperado. O stub Outlook existe apenas para validar contratos e normalizacao com payloads fake.
 
 ## Classificacao
 

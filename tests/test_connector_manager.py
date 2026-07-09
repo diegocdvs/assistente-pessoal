@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import pytest
 
+from app.connectors import manager as manager_module
 from app.connectors.manager import ConnectorManager, ConnectorNotSupportedError
+from app.connectors.outlook import OutlookConnector
 from app.core.accounts import MailAccount
 from app.core.models import EmailEntity
 
@@ -54,3 +56,18 @@ def test_connector_manager_rejects_unsupported_provider():
 
     with pytest.raises(ConnectorNotSupportedError):
         manager.fetch_recent(make_account("outlook"))
+
+
+def test_default_connector_manager_registers_gmail_and_disabled_outlook(monkeypatch):
+    monkeypatch.setattr(manager_module, "GmailConnector", lambda project_id: FakeConnector())
+
+    manager = ConnectorManager.default("project")
+
+    assert manager.supported_providers() == ["gmail", "outlook"]
+
+
+def test_connector_manager_routes_to_outlook_stub_when_registered():
+    manager = ConnectorManager()
+    manager.register(OutlookConnector(enabled=False))
+
+    assert manager.fetch_recent(make_account("outlook")) == []

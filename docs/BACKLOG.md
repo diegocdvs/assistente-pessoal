@@ -16,6 +16,19 @@ Objetivo: fortalecer contratos e operacao antes de novos conectores.
 | 0.2.5 Observabilidade minima | Alta | DailyJob | run_id, contagens por etapa e schema_version persistidos | Concluido |
 | 0.2.6 Documentacao | Media | itens acima | README, arquitetura, runbook, backlog e review atualizados | Concluido |
 
+## Release 0.3A - Multi Provider Foundation (Outlook)
+
+Objetivo: preparar Outlook como segundo provider sem conectar ao Microsoft Graph real.
+
+| Task | Prioridade | Dependencia | Criterio de aceite | Status |
+|---|---:|---|---|---|
+| 0.3A.1 Interface comum de conectores | Alta | ConnectorManager | todos os conectores usam contrato comum `fetch_recent -> list[EmailEntity]` | Concluido |
+| 0.3A.2 OutlookConnector stub | Alta | interface comum | provider `outlook` existe sem chamadas reais ao Graph | Concluido |
+| 0.3A.3 Outlook models/config | Media | OutlookConnector | modelos simples `OutlookAccount` e `OutlookConfig` existem | Concluido |
+| 0.3A.4 ConnectorManager multi-provider | Alta | OutlookConnector | reconhece `gmail` e `outlook`; Outlook permanece desabilitado | Concluido |
+| 0.3A.5 Payloads fake Graph | Alta | OutlookNormalizer | testes validam `Graph -> EmailEntity -> WorkItem` | Concluido |
+| 0.3A.6 Outlook design doc | Media | itens acima | `docs/OUTLOOK_DESIGN.md` criado | Concluido |
+
 ## Sprint 1.6 - Operacao minima
 
 Objetivo: reduzir diagnostico manual e preparar rotina de deploy/smoke.
@@ -31,6 +44,8 @@ Objetivo: reduzir diagnostico manual e preparar rotina de deploy/smoke.
 ## Sprint 2 - OutlookConnector
 
 Objetivo: provar que a arquitetura aceita outro provedor de e-mail sem alterar o nucleo.
+
+Observacao: a Release 0.3A criou apenas a fundacao e o stub. As tarefas abaixo continuam pendentes para a integracao real com Microsoft Graph.
 
 | Task | Prioridade | Dependencia | Criterio de aceite | Status |
 |---|---:|---|---|---|
