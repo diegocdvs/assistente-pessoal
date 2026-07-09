@@ -37,7 +37,10 @@ class DailyJob:
     ) -> None:
         self.settings = settings
         self.account_manager = account_manager or AccountManager(settings.accounts_config_path)
-        self.connector_manager = connector_manager or ConnectorManager.default(settings.project_id)
+        self.connector_manager = connector_manager or ConnectorManager.default(
+            settings.project_id,
+            outlook_enabled=settings.feature_flags.outlook_enabled,
+        )
         self.classifier = classifier or RuleBasedClassifier()
         self.persistence = persistence or FirestorePersistence(settings.project_id)
         self.automation_planner = automation_planner or AutomationPlanner(dry_run=settings.dry_run)

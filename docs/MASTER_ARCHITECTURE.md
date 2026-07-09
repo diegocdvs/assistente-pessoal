@@ -247,7 +247,7 @@ O conector não deve:
 - executar ações de automação;
 - enviar relatório.
 
-Na Release 0.3A, `gmail` e `outlook` compartilham esse contrato. Gmail segue funcional; Outlook existe apenas como stub desabilitado.
+Na Release 0.3B, `gmail` e `outlook` compartilham esse contrato. Gmail segue funcional; Outlook possui integracao Microsoft Graph read-only, desabilitada por padrao por `OUTLOOK_ENABLED=false`.
 
 ### 6.2 GmailConnector
 
@@ -261,27 +261,30 @@ Responsável por:
 
 Não deve marcar como lido, mover, excluir ou arquivar enquanto não houver um executor específico com aprovação de segurança.
 
-### 6.3 OutlookConnector futuro
+### 6.3 OutlookConnector
 
-Status atual: stub arquitetural na Release 0.3A.
+Status atual: Microsoft Graph read-only atras de feature flag.
 
-O `OutlookConnector` implementa a mesma interface de conector, mas nao chama Microsoft Graph real. Ele existe para validar:
+O `OutlookConnector` implementa a mesma interface de conector e depende de abstracoes:
 
-- contrato do provider `outlook`;
-- normalizacao de payload fake do Microsoft Graph;
-- conversao `EmailEntity -> WorkItem`;
-- registro no `ConnectorManager`.
+- `OAuthProvider`;
+- `OutlookMessageClient`;
+- `OutlookNormalizer`.
+
+MSAL fica isolado em `app/auth/microsoft.py`. O cliente HTTP Graph fica em `app/integrations/microsoft_graph.py`.
 
 O fluxo validado por testes e:
 
 ```text
-Graph payload fake
+Microsoft Graph payload
   -> OutlookNormalizer
   -> EmailEntity
   -> WorkItem
 ```
 
 A integração Outlook não deve exigir mudanças no `DailyJob` além de registrar o conector no `ConnectorManager`.
+
+Ativacao real exige `OUTLOOK_ENABLED=true` e secrets Microsoft no Secret Manager. Por padrao, Outlook permanece desabilitado.
 
 Detalhes estao em `docs/OUTLOOK_DESIGN.md`.
 
@@ -336,6 +339,15 @@ google-pessoal-client-secret-json
 google-pessoal-refresh-token
 ```
 
+Secrets Outlook derivados de `secret_prefix`:
+
+```text
+<secret_prefix>-tenant-id
+<secret_prefix>-client-id
+<secret_prefix>-client-secret
+<secret_prefix>-token-cache
+```
+
 ## 7.1 Configuracao centralizada
 
 `app/config.py` centraliza a configuracao operacional basica:
@@ -358,7 +370,7 @@ AI_ENABLED=false
 AUTO_EXECUTION_ENABLED=false
 ```
 
-Essas flags nao ativam conectores ou funcionalidades novas por si so. Elas apenas deixam a base pronta para releases futuras.
+`OUTLOOK_ENABLED=true` ativa o conector Outlook read-only. As demais flags seguem preparatorias.
 
 ## 8. Persistence Layer
 

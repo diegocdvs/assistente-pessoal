@@ -163,6 +163,38 @@ Para detalhes de desenho, consulte:
 docs/OUTLOOK_DESIGN.md
 ```
 
+## 10.3 Release 0.3B - Outlook Microsoft Graph
+
+Outlook tem integracao read-only com Microsoft Graph, mas permanece desligado por padrao:
+
+```bash
+OUTLOOK_ENABLED=false
+```
+
+Para ativar em ambiente controlado:
+
+```bash
+OUTLOOK_ENABLED=true
+```
+
+Secrets esperados para `secret_prefix=outlook-profissional`:
+
+```text
+outlook-profissional-tenant-id
+outlook-profissional-client-id
+outlook-profissional-client-secret
+outlook-profissional-token-cache
+```
+
+O token cache deve ser gerado por bootstrap OAuth externo e gravado no Secret Manager. O runtime usa MSAL `acquire_token_silent()` e nao faz refresh token manual.
+
+Docs:
+
+```text
+docs/setup/AZURE_SETUP.md
+docs/adr/ADR-008-microsoft-graph-oauth.md
+```
+
 ## 11. Erros conhecidos
 
 ### `invalid_scope`
@@ -192,7 +224,7 @@ gcloud services enable gmail.googleapis.com
 
 ### `No module named pytest`
 
-Causa: venv nao ativada ou dependencias nao instaladas.
+Causa: venv nao ativada ou dependencias nao instaladas. O `Makefile` tenta usar `.venv/bin/python` automaticamente quando existir e aborta com mensagem clara se `pytest` nao estiver disponivel.
 
 Solucao:
 

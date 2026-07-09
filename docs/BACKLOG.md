@@ -45,16 +45,17 @@ Objetivo: reduzir diagnostico manual e preparar rotina de deploy/smoke.
 
 Objetivo: provar que a arquitetura aceita outro provedor de e-mail sem alterar o nucleo.
 
-Observacao: a Release 0.3A criou apenas a fundacao e o stub. As tarefas abaixo continuam pendentes para a integracao real com Microsoft Graph.
+Observacao: a Release 0.3B implementou leitura real read-only do Microsoft Graph atras de `OUTLOOK_ENABLED=false` por padrao. Permanecem pendentes bootstrap operacional de credenciais, validacao em Cloud Run e evolucoes fora de leitura.
 
 | Task | Prioridade | Dependencia | Criterio de aceite | Status |
 |---|---:|---|---|---|
-| 2.1 definir secrets Microsoft | Alta | Entra ID | documentacao clara de client id/secret/refresh token | Pendente |
-| 2.2 implementar OutlookConnector | Alta | msal | retorna EmailEntity | Pendente |
-| 2.3 registrar no ConnectorManager | Alta | 2.2 | provider=outlook processado sem mexer em DailyJob | Pendente |
-| 2.4 testes do OutlookConnector | Alta | 2.2 | mocks cobrindo normalizacao | Pendente |
+| 2.1 definir secrets Microsoft | Alta | Entra ID | documentacao clara de tenant/client/token-cache | Concluido |
+| 2.2 implementar OutlookConnector | Alta | msal | retorna EmailEntity | Concluido |
+| 2.3 registrar no ConnectorManager | Alta | 2.2 | provider=outlook processado sem mexer em DailyJob | Concluido |
+| 2.4 testes do OutlookConnector | Alta | 2.2 | mocks cobrindo normalizacao, OAuth e Graph | Concluido |
 | 2.5 config accounts.yaml | Media | 2.3 | conta outlook desabilitada por padrao | Pendente |
 | 2.6 smoke em DRY_RUN | Alta | 2.5 | job executa sem acao mutavel | Pendente |
+| 2.7 bootstrap OAuth Microsoft | Alta | Azure | script/processo para gerar MSAL token cache | Pendente |
 
 ## Sprint 3 - WhatsAppNotifier
 

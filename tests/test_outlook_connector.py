@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from app.connectors.outlook import OutlookAccount, OutlookConfig, OutlookConnector, OutlookNormalizer
+from app.connectors.outlook import (
+    OutlookAccount,
+    OutlookConfig,
+    OutlookConnector,
+    OutlookNormalizer,
+)
 from app.core.accounts import MailAccount
 
 
@@ -108,4 +113,37 @@ def test_outlook_connector_can_normalize_fake_payloads_without_graph_calls():
 
     assert len(emails) == 1
     assert emails[0].provider == "outlook"
+    assert emails[0].id == "AAMkAGI2"
+
+
+def test_outlook_connector_uses_oauth_provider_and_message_client():
+    class FakeOAuthProvider:
+        def __init__(self):
+            self.accounts = []
+
+        def get_access_token(self, account):
+            self.accounts.append(account.id)
+            return "token-123"
+
+    class FakeMessageClient:
+        def __init__(self):
+            self.calls = []
+
+        def fetch_recent_messages(self, *, access_token, max_results):
+            self.calls.append((access_token, max_results))
+            return [fake_graph_message()]
+
+    oauth_provider = FakeOAuthProvider()
+    message_client = FakeMessageClient()
+    connector = OutlookConnector(
+        enabled=True,
+        oauth_provider=oauth_provider,
+        message_client=message_client,
+    )
+
+    emails = connector.fetch_recent(make_account())
+
+    assert oauth_provider.accounts == ["outlook_profissional"]
+    assert message_client.calls == [("token-123", 10)]
+    assert len(emails) == 1
     assert emails[0].id == "AAMkAGI2"

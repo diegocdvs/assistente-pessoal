@@ -3,24 +3,28 @@ REGION ?= southamerica-east1
 IMAGE ?= $(REGION)-docker.pkg.dev/$(PROJECT_ID)/assistente-pessoal/app:latest
 JOB_NAME ?= assistente-pessoal-diario
 SERVICE_ACCOUNT ?= assistente-pessoal-runner@$(PROJECT_ID).iam.gserviceaccount.com
+PYTHON ?= $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; elif [ -x .venv/Scripts/python.exe ]; then echo .venv/Scripts/python.exe; else echo python; fi)
 
-.PHONY: install google-token validate doctor smoke release deploy run-job list-jobs
+.PHONY: install google-token check-python-deps validate doctor smoke release deploy run-job list-jobs
 
 install:
-	python -m pip install -r requirements.txt
+	$(PYTHON) -m pip install -r requirements.txt
 
 google-token:
-	python scripts/google_oauth_local.py --client-secret-file client_secret.json
+	$(PYTHON) scripts/google_oauth_local.py --client-secret-file client_secret.json
 
-validate:
-	python -m pytest
-	python -m compileall app scripts
+check-python-deps:
+	$(PYTHON) -c "import pytest" || (echo "pytest nao encontrado. Execute '$(PYTHON) -m pip install -r requirements.txt' ou ative a .venv correta."; exit 1)
+
+validate: check-python-deps
+	$(PYTHON) -m pytest
+	$(PYTHON) -m compileall app scripts
 
 doctor:
-	python scripts/doctor.py --project-id $(PROJECT_ID) --region $(REGION) --job-name $(JOB_NAME)
+	$(PYTHON) scripts/doctor.py --project-id $(PROJECT_ID) --region $(REGION) --job-name $(JOB_NAME)
 
 smoke:
-	python scripts/smoke.py --project-id $(PROJECT_ID) --region $(REGION) --job-name $(JOB_NAME)
+	$(PYTHON) scripts/smoke.py --project-id $(PROJECT_ID) --region $(REGION) --job-name $(JOB_NAME)
 
 release: validate doctor deploy smoke
 

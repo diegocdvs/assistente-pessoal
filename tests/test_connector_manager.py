@@ -66,6 +66,38 @@ def test_default_connector_manager_registers_gmail_and_disabled_outlook(monkeypa
     assert manager.supported_providers() == ["gmail", "outlook"]
 
 
+def test_default_connector_manager_can_enable_outlook(monkeypatch):
+    class FakeOAuthProvider:
+        def __init__(self, *, secret_reader):
+            self.secret_reader = secret_reader
+
+        def get_access_token(self, account):
+            return "token-123"
+
+    class FakeMessageClient:
+        def fetch_recent_messages(self, *, access_token, max_results):
+            return [
+                {
+                    "id": "outlook-msg-1",
+                    "subject": "Outlook",
+                    "from": {"emailAddress": {"address": "sender@example.com"}},
+                    "toRecipients": [{"emailAddress": {"address": "acc@example.com"}}],
+                }
+            ]
+
+    monkeypatch.setattr(manager_module, "GmailConnector", lambda project_id: FakeConnector())
+    monkeypatch.setattr(manager_module, "SecretReader", lambda project_id: object())
+    monkeypatch.setattr(manager_module, "MicrosoftOAuthProvider", FakeOAuthProvider)
+    monkeypatch.setattr(manager_module, "MicrosoftGraphMailClient", FakeMessageClient)
+
+    manager = ConnectorManager.default("project", outlook_enabled=True)
+
+    emails = manager.fetch_recent(make_account("outlook"))
+    assert manager.supported_providers() == ["gmail", "outlook"]
+    assert len(emails) == 1
+    assert emails[0].provider == "outlook"
+
+
 def test_connector_manager_routes_to_outlook_stub_when_registered():
     manager = ConnectorManager()
     manager.register(OutlookConnector(enabled=False))
