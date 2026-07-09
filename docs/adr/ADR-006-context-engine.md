@@ -1,10 +1,14 @@
 # ADR-006 — Context Engine
 
-Status: proposto
+Status: substituido por ADR-009
 
 ## Contexto
 
 Classificação isolada não basta. O sistema precisa entender continuidade: mensagens sobre a mesma compra, reagendamento de reunião, vencimento de cobrança, cancelamento, confirmação e atualização.
+
+## Nota de substituicao
+
+A Release 0.4 implementou o Context Engine como camada deterministica que gera `ContextSnapshot` a partir de dados persistidos. A decisao vigente esta registrada em `ADR-009 - Context Engine separado da IA`.
 
 ## Decisão
 

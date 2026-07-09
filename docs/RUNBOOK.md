@@ -195,6 +195,31 @@ docs/setup/AZURE_SETUP.md
 docs/adr/ADR-008-microsoft-graph-oauth.md
 ```
 
+## 10.4 Release 0.4 - Context Engine
+
+O Context Engine consolida dados ja persistidos e nao chama APIs externas.
+
+Validacao local:
+
+```bash
+python -m pytest tests/test_context_engine.py
+python -m compileall app scripts
+```
+
+Uso manual:
+
+```bash
+python - <<'PY'
+from app.context import ContextEngine, FirestoreContextRepository
+
+repository = FirestoreContextRepository(project_id="agenda-pessoal-projeto")
+snapshot = ContextEngine(repository).build_snapshot(account_ids=["pessoal_google"])
+print(snapshot.to_dict()["summary"])
+PY
+```
+
+Se nao houver dados no Firestore, o snapshot sera vazio ou com contagens zeradas. Isso nao indica falha do engine.
+
 ## 11. Erros conhecidos
 
 ### `invalid_scope`
