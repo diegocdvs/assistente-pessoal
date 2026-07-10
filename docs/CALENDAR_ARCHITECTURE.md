@@ -53,3 +53,7 @@ Eventos usam upsert idempotente, preservam `first_seen_at` quando aplicavel e at
 `DailyAgendaBuilder` gera resumo deterministico com compromissos, proximo evento, conflitos, janelas livres, emails criticos, follow-ups, ActionPlans pendentes, subscriptions aguardando aprovacao e alertas de seguranca.
 
 Nao ha IA, LLM, embeddings ou texto generativo.
+
+## Relacao com Daily Brief
+
+`DailyAgenda` e centrada em calendario. `DailyBrief` consolida agenda, emails, prioridades, follow-ups, subscriptions, seguranca e auditoria a partir do `ContextSnapshot`.

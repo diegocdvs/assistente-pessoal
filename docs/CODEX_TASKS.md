@@ -2,6 +2,22 @@
 
 Use estes prompts quando o Codex estiver disponivel. Cada task deve ser executada isoladamente.
 
+## Release 0.9 - Daily Brief v1
+
+```text
+Implementar Daily Brief deterministico:
+- DailyBrief e DailyBriefSection;
+- DailyBriefBuilder a partir de ContextSnapshot;
+- renderizacao texto e JSON;
+- repository in-memory e Firestore;
+- scripts/daily_brief.py;
+- make daily-brief e make daily-brief-json;
+- docs/DAILY_BRIEF.md;
+- ADR-014.
+
+Nao usar IA, nao acessar providers e nao executar acoes.
+```
+
 ## Release 0.8 - Google Calendar Read-Only
 
 ```text

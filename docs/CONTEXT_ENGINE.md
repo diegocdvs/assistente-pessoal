@@ -224,3 +224,7 @@ O Context Engine nao chama Google Calendar. Ele calcula de forma deterministica:
 - conflitos;
 - eventos declined;
 - alertas de seguranca de calendario.
+
+## Daily Brief
+
+O Daily Brief consome `ContextSnapshot` como fonte central. O builder nao chama Firestore, Gmail, Outlook, Calendar ou APIs externas.

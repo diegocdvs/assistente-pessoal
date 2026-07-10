@@ -210,3 +210,7 @@ O sistema continua proibido de:
 - sinais de convite inesperado.
 
 Ele nao acessa URLs, nao entra em reunioes, nao abre anexos, nao aceita e nao rejeita convites.
+
+## Daily Brief
+
+Daily Brief resume alertas de seguranca ja presentes no `ContextSnapshot`. Ele nao recalcula reputacao externa, nao acessa links e nao transforma alertas em acoes automaticas.

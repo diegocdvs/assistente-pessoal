@@ -130,3 +130,12 @@ Validacao read-only:
 ```bash
 python scripts/calendar.py --project-id agenda-pessoal-projeto --daily-agenda --dry-run
 ```
+
+## Daily Brief
+
+```bash
+python scripts/daily_brief.py --project-id agenda-pessoal-projeto --dry-run
+python scripts/daily_brief.py --project-id agenda-pessoal-projeto --json --no-persist
+```
+
+O Daily Brief consome `ContextSnapshot`, nao chama providers e nao executa acoes.

@@ -127,6 +127,18 @@ https://www.googleapis.com/auth/calendar.calendarlist.readonly
 
 Calendar permanece desabilitado por padrao com `CALENDAR_ENABLED=false`. Mudanca de escopo pode exigir nova autorizacao e novo refresh token.
 
+## Release 0.9 - Daily Brief v1
+
+A Release 0.9 adiciona o primeiro brief diario consolidado:
+
+- `DailyBrief` e `DailyBriefSection` estruturam a saida;
+- `DailyBriefBuilder` consome `ContextSnapshot`, sem acessar providers;
+- renderizadores texto e JSON geram saida deterministica;
+- `daily_briefs/{date}:{scope}` persiste briefs de forma idempotente;
+- `scripts/daily_brief.py`, `make daily-brief` e `make daily-brief-json` operam em modo seguro.
+
+O Daily Brief nao usa IA, nao envia mensagens e nao executa ActionPlans.
+
 ## Sprint 1.5
 
 A base foi consolidada em um pipeline desacoplado:
@@ -410,6 +422,15 @@ make calendar
 ```
 
 O comando nao cria, atualiza, exclui ou responde eventos. Meeting URLs e descricoes completas nao sao exibidas por padrao.
+
+## Daily Brief
+
+```bash
+make daily-brief
+make daily-brief-json
+```
+
+O brief usa dados persistidos via `ContextSnapshot` e nao acessa Gmail, Outlook ou Calendar diretamente.
 
 ## Validacao operacional
 

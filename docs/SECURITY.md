@@ -21,6 +21,8 @@ Todo dado externo e nao confiavel por padrao. O sistema deve aplicar defesa em p
 - Risco `high` ou `critical` impede execucao automatica e exige revisao manual.
 - Calendar e read-only: nao cria, altera, exclui, move ou responde eventos.
 - Meeting URLs e links em descricoes de eventos nunca sao acessados automaticamente.
+- Daily Brief nao exibe corpos completos, descricoes completas, URLs completas, tokens ou secrets.
+- Daily Brief nao executa ActionPlans nem envia mensagens.
 
 ## Threat Analyzer alvo
 

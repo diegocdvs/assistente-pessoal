@@ -128,6 +128,20 @@ Objetivo: ler agenda Google em modo read-only e gerar contexto diario determinis
 | 0.8.8 Security/Double Check | Media | Security Foundation | analise estatica e auditoria read-only | Concluido |
 | 0.8.9 Docs/ADR-013 | Media | implementacao | documentacao sincronizada | Concluido |
 
+## Release 0.9 - Daily Brief v1
+
+Objetivo: entregar visao diaria consolidada, deterministica e sem acoes mutaveis.
+
+| Task | Prioridade | Dependencia | Criterio de aceite | Status |
+|---|---:|---|---|---|
+| 0.9.1 DailyBrief models | Alta | ContextSnapshot | DailyBrief e DailyBriefSection serializaveis | Concluido |
+| 0.9.2 Builder deterministico | Alta | Context Engine | status, headline, metricas e secoes | Concluido |
+| 0.9.3 Renderizadores | Alta | models | texto e JSON estaveis | Concluido |
+| 0.9.4 Repository | Media | Firestore | in-memory e Firestore idempotentes | Concluido |
+| 0.9.5 CLI/Makefile | Alta | builder | scripts/daily_brief.py, make daily-brief e make daily-brief-json | Concluido |
+| 0.9.6 Double Check | Media | brief | auditoria read-only do modelo | Concluido |
+| 0.9.7 Docs/ADR-014 | Media | implementacao | DAILY_BRIEF e ADR criados | Concluido |
+
 ## Sprint 4 - Calendar Intelligence
 
 Objetivo: ler agenda e planejar eventos a partir de e-mails.

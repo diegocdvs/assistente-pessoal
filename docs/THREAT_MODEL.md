@@ -36,9 +36,10 @@ Todo cruzamento deve validar entrada, limitar privilegios e registrar auditoria.
 7. Acoes mutaveis sem autorizacao.
 8. Unsubscribe malicioso via URL, redirect, `mailto` ou header forjado.
 9. Convites de calendario com phishing, links maliciosos ou organizador externo suspeito.
-10. Dependencias comprometidas.
-11. Logs contendo dados sensiveis.
-12. Falha silenciosa na leitura ou persistencia.
+10. Brief diario expondo dados sensiveis completos em logs ou terminal compartilhado.
+11. Dependencias comprometidas.
+12. Logs contendo dados sensiveis.
+13. Falha silenciosa na leitura ou persistencia.
 
 ## Mitigacoes atuais
 
@@ -62,6 +63,7 @@ Todo cruzamento deve validar entrada, limitar privilegios e registrar auditoria.
 - Double Check independente e read-only.
 - Subscription Management separado de qualquer executor, com aprovacao explicita e targets redigidos.
 - Calendar read-only com analise estatica de metadados, sem acessar meeting URLs ou responder convites.
+- Daily Brief com renderizacao limitada, sem corpo completo, sem URL completa e sem execucao de acoes.
 
 ## Regra de atualizacao
 

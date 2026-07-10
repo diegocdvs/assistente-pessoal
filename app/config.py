@@ -29,6 +29,23 @@ class Limits:
 
 
 @dataclass(frozen=True)
+class DailyBriefSettings:
+    enabled: bool = True
+    timezone: str = "America/Sao_Paulo"
+    max_items_per_section: int = 5
+    persist: bool = True
+    include_tomorrow: bool = True
+    include_low_priority: bool = False
+
+    def validate(self) -> None:
+        from zoneinfo import ZoneInfo
+
+        ZoneInfo(self.timezone)
+        if self.max_items_per_section < 1 or self.max_items_per_section > 50:
+            raise ValueError("DAILY_BRIEF_MAX_ITEMS_PER_SECTION deve estar entre 1 e 50.")
+
+
+@dataclass(frozen=True)
 class Settings:
     project_id: str
     region: str = "southamerica-east1"
@@ -38,6 +55,7 @@ class Settings:
     feature_flags: FeatureFlags = field(default_factory=FeatureFlags)
     limits: Limits = field(default_factory=Limits)
     calendar: CalendarSettings = field(default_factory=CalendarSettings)
+    daily_brief: DailyBriefSettings = field(default_factory=DailyBriefSettings)
 
 
 def load_settings() -> Settings:
@@ -76,5 +94,13 @@ def load_settings() -> Settings:
             workday_end=os.environ.get("CALENDAR_WORKDAY_END", "18:00"),
             min_free_window_minutes=int(os.environ.get("CALENDAR_MIN_FREE_WINDOW_MINUTES", "30")),
             timezone=os.environ.get("CALENDAR_TIMEZONE", "America/Sao_Paulo"),
+        ),
+        daily_brief=DailyBriefSettings(
+            enabled=_env_bool("DAILY_BRIEF_ENABLED", True),
+            timezone=os.environ.get("DAILY_BRIEF_TIMEZONE", "America/Sao_Paulo"),
+            max_items_per_section=int(os.environ.get("DAILY_BRIEF_MAX_ITEMS_PER_SECTION", "5")),
+            persist=_env_bool("DAILY_BRIEF_PERSIST", True),
+            include_tomorrow=_env_bool("DAILY_BRIEF_INCLUDE_TOMORROW", True),
+            include_low_priority=_env_bool("DAILY_BRIEF_INCLUDE_LOW_PRIORITY", False),
         ),
     )
