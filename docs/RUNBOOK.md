@@ -96,6 +96,22 @@ python scripts/subscriptions.py --project-id agenda-pessoal-projeto --blocked --
 
 O comando nao faz unsubscribe, nao acessa links, nao envia `mailto`, nao faz scraping e nao altera providers. Targets sensiveis sao redigidos na saida.
 
+## 7.2 Calendar
+
+Agenda diaria read-only:
+
+```bash
+make calendar
+```
+
+Comando direto:
+
+```bash
+python scripts/calendar.py --project-id agenda-pessoal-projeto --daily-agenda --dry-run
+```
+
+O comando nao cria, altera, exclui, move ou responde eventos. Se aparecer `invalid_scope` ou `insufficientPermissions`, reautorize com os escopos read-only documentados em `docs/setup/GOOGLE_CALENDAR_SETUP.md`.
+
 ## 8. Ler logs manualmente
 
 Quando necessario, copie o nome da execucao mostrado pelo smoke e rode:
@@ -288,6 +304,24 @@ approval_required=true
 execution_enabled=false
 dry_run=true
 status=waiting_approval
+```
+
+## 10.7 Release 0.8 - Calendar Read-Only
+
+Validacao local:
+
+```bash
+python -m pytest tests/test_calendar_release.py
+python -m compileall app scripts
+```
+
+Validacao Cloud Shell:
+
+```bash
+make validate
+make calendar
+make double-check
+make release
 ```
 
 ## 11. Erros conhecidos

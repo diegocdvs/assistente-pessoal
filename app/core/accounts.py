@@ -26,7 +26,9 @@ class MailAccount:
     enabled: bool
     secret_prefix: str
     max_emails: int = 25
+    capabilities: list[str] = field(default_factory=lambda: ["email"])
     calendar_enabled: bool = False
+    calendar_ids: list[str] = field(default_factory=lambda: ["primary"])
     firestore_enabled: bool = True
     policies: AccountPolicies = field(default_factory=AccountPolicies)
 
@@ -72,6 +74,9 @@ class AccountManager:
 
         policies = raw.get("policies") or {}
         calendar = raw.get("calendar") or {}
+        capabilities = list(raw.get("capabilities") or ["email"])
+        if bool(calendar.get("enabled", False)) and "calendar" not in capabilities:
+            capabilities.append("calendar")
         firestore = raw.get("firestore") or {}
 
         try:
@@ -83,7 +88,9 @@ class AccountManager:
                 enabled=bool(raw.get("enabled", False)),
                 secret_prefix=str(raw["secret_prefix"]),
                 max_emails=int(raw.get("max_emails", 25)),
+                capabilities=capabilities,
                 calendar_enabled=bool(calendar.get("enabled", False)),
+                calendar_ids=list(calendar.get("ids") or ["primary"]),
                 firestore_enabled=bool(firestore.get("enabled", True)),
                 policies=AccountPolicies(
                     dry_run=bool(policies.get("dry_run", True)),

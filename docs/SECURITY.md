@@ -19,6 +19,8 @@ Todo dado externo e nao confiavel por padrao. O sistema deve aplicar defesa em p
 - Subscription Management nunca acessa URLs de unsubscribe, nunca envia `mailto`, nunca faz scraping e nunca abre navegador.
 - `ActionPlan` de unsubscribe deve exigir `approval_required=true` e `execution_enabled=false` ate existir executor aprovado.
 - Risco `high` ou `critical` impede execucao automatica e exige revisao manual.
+- Calendar e read-only: nao cria, altera, exclui, move ou responde eventos.
+- Meeting URLs e links em descricoes de eventos nunca sao acessados automaticamente.
 
 ## Threat Analyzer alvo
 

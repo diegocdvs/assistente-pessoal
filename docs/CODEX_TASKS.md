@@ -2,6 +2,26 @@
 
 Use estes prompts quando o Codex estiver disponivel. Cada task deve ser executada isoladamente.
 
+## Release 0.8 - Google Calendar Read-Only
+
+```text
+Implementar Calendar read-only sem criar eventos:
+- CalendarEvent;
+- GoogleCalendarConnector read-only;
+- CalendarRepository;
+- ContextSnapshot com agenda;
+- DailyAgendaBuilder deterministico;
+- scripts/calendar.py e make calendar;
+- docs/CALENDAR_ARCHITECTURE.md;
+- docs/setup/GOOGLE_CALENDAR_SETUP.md;
+- ADR-013.
+
+Validacao:
+python -m pytest
+python -m compileall app scripts
+git diff --check
+```
+
 ## Task 1.6 - Operacao minima
 
 ```text

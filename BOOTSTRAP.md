@@ -103,3 +103,30 @@ OUTLOOK_ENABLED=true
 ```
 
 Mesmo ativo, o conector Outlook e somente leitura.
+
+## Google Calendar
+
+Calendar permanece desligado por padrao:
+
+```bash
+CALENDAR_ENABLED=false
+```
+
+Para reautorizar OAuth com Calendar read-only:
+
+```bash
+python scripts/google_oauth_local.py --client-secret-file client_secret.json --include-calendar-readonly
+```
+
+Escopos usados:
+
+```text
+https://www.googleapis.com/auth/calendar.events.readonly
+https://www.googleapis.com/auth/calendar.calendarlist.readonly
+```
+
+Validacao read-only:
+
+```bash
+python scripts/calendar.py --project-id agenda-pessoal-projeto --daily-agenda --dry-run
+```

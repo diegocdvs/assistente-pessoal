@@ -112,6 +112,22 @@ Objetivo: fundacao segura para detectar, agregar, recomendar e planejar cancelam
 | 0.7.9 Context/Double Check/CLI | Media | repositories | snapshot, auditoria read-only e make subscriptions | Concluido |
 | 0.7.10 Docs e ADR-012 | Media | implementacao | documentacao sincronizada | Concluido |
 
+## Release 0.8 - Google Calendar Read-Only & Daily Agenda
+
+Objetivo: ler agenda Google em modo read-only e gerar contexto diario deterministico.
+
+| Task | Prioridade | Dependencia | Criterio de aceite | Status |
+|---|---:|---|---|---|
+| 0.8.1 CalendarEvent | Alta | modelos core | entidade normalizada e WorkItem calendar_event | Concluido |
+| 0.8.2 CalendarConnector | Alta | OAuth Google | contrato read-only e GoogleCalendarConnector | Concluido |
+| 0.8.3 Config/OAuth | Alta | Settings | feature flag, limites e escopos read-only documentados | Concluido |
+| 0.8.4 Repository | Alta | Firestore | in-memory e Firestore com upsert | Concluido |
+| 0.8.5 Context Engine | Alta | repository | eventos, proximo compromisso, conflitos e janelas livres | Concluido |
+| 0.8.6 Daily Agenda | Alta | ContextSnapshot | agenda deterministica sem IA | Concluido |
+| 0.8.7 CLI/Makefile | Media | repository | scripts/calendar.py e make calendar | Concluido |
+| 0.8.8 Security/Double Check | Media | Security Foundation | analise estatica e auditoria read-only | Concluido |
+| 0.8.9 Docs/ADR-013 | Media | implementacao | documentacao sincronizada | Concluido |
+
 ## Sprint 4 - Calendar Intelligence
 
 Objetivo: ler agenda e planejar eventos a partir de e-mails.

@@ -310,6 +310,22 @@ schema_version
 
 Subscriptions sao separadas de `WorkItem` porque representam estado agregado e historico recorrente, nao uma mensagem individual.
 
+### 5.8 CalendarEvent
+
+Representa um compromisso normalizado e independente de provider.
+
+Campos principais:
+
+```text
+id, provider, account_id, calendar_id, title, description_summary,
+location, start_at, end_at, timezone, all_day, status, organizer,
+attendees, attendee_count, user_response_status, recurrence_id,
+recurring, meeting_url_present, visibility, source_updated_at,
+metadata, created_at, updated_at, schema_version
+```
+
+`CalendarEvent` pode virar `WorkItem(type="calendar_event")`, mas nao e `EmailEntity`.
+
 ## 6. Conectores
 
 ### 6.1 Interface desejada
@@ -477,6 +493,8 @@ accounts/{account_id}/emails/{message_id}
 accounts/{account_id}/classifications/{message_id}
 accounts/{account_id}/action_plans/{message_id}
 accounts/{account_id}/subscriptions/{subscription_id}
+accounts/{account_id}/calendar_events/{event_id}
+daily_agendas/{date}
 ```
 
 Campos operacionais importantes:
@@ -697,6 +715,21 @@ Regras:
 - nenhum `mailto` e enviado;
 - nenhum unsubscribe e executado;
 - `ActionPlan` nasce com `approval_required=true`, `execution_enabled=false` e `dry_run=true`.
+
+## 12.4 Calendar Capability
+
+Fluxo read-only:
+
+```text
+Google Calendar
+ -> CalendarConnector
+ -> CalendarEvent
+ -> CalendarRepository
+ -> Context Engine
+ -> Daily Agenda
+```
+
+O CalendarConnector lista calendarios e eventos, mas nao cria, altera, exclui, move ou responde convites.
 
 ## 13. Segurança
 

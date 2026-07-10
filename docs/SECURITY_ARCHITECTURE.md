@@ -198,3 +198,15 @@ O sistema continua proibido de:
 - fazer scraping;
 - abrir navegador;
 - executar unsubscribe.
+
+## Calendar
+
+`CalendarSecurityAnalyzer` avalia metadados de `CalendarEvent` de forma estatica:
+
+- links presentes em titulo, local ou resumo de descricao;
+- meeting URL presente;
+- organizador externo;
+- dominio suspeito;
+- sinais de convite inesperado.
+
+Ele nao acessa URLs, nao entra em reunioes, nao abre anexos, nao aceita e nao rejeita convites.

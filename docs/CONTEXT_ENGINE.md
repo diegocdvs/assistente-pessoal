@@ -68,6 +68,16 @@ subscriptions_recommended_for_unsubscribe
 subscriptions_waiting_approval
 subscriptions_blocked_by_security
 top_subscription_candidates
+calendar_events_today
+calendar_events_tomorrow
+calendar_events_upcoming
+all_day_events_today
+next_event
+meetings_count_today
+free_windows_today
+calendar_conflicts
+declined_events
+calendar_security_warnings
 ```
 
 `summary` contem:
@@ -98,6 +108,7 @@ O Context Engine usa apenas:
 - `accounts/{account_id}/classifications`;
 - `accounts/{account_id}/action_plans`;
 - `accounts/{account_id}/subscriptions`;
+- `accounts/{account_id}/calendar_events`;
 - `runs/{run_id}`;
 - `WorkItem` conceitual reconstruido a partir dos emails persistidos.
 
@@ -199,3 +210,17 @@ Foram identificadas 12 inscricoes.
 ```
 
 URLs e enderecos sensiveis de unsubscribe nao entram no resumo.
+
+## Calendar
+
+A Release 0.8 adiciona eventos persistidos ao Context Engine.
+
+O Context Engine nao chama Google Calendar. Ele calcula de forma deterministica:
+
+- eventos de hoje e amanha;
+- proximo compromisso;
+- eventos de dia inteiro;
+- janelas livres;
+- conflitos;
+- eventos declined;
+- alertas de seguranca de calendario.

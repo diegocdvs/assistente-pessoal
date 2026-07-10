@@ -52,6 +52,14 @@ Provider
 - subscription de alto risco com ActionPlan executavel;
 - subscription aprovada sem executor existente;
 - divergencia entre contagens do `ContextSnapshot` e repository.
+- evento retornado pela origem e ausente na persistencia;
+- `CalendarEvent` duplicado;
+- evento sem `schema_version`;
+- `account_id` ou `provider` incorreto;
+- divergencia entre Calendar repository e `ContextSnapshot`;
+- daily agenda inconsistente;
+- conflito nao detectado;
+- `SecurityAssessment` ausente quando aplicavel.
 
 ## Modelos previstos
 
@@ -103,6 +111,8 @@ audit_runs/{audit_run_id}/discrepancies/{discrepancy_id}
 - sem executar ActionPlans;
 - sem executar unsubscribe;
 - sem acessar URLs ou enviar `mailto`;
+- sem modificar eventos de calendario;
+- sem responder convites;
 - sem apagar ou sobrescrever registros;
 - `DOUBLE_CHECK_SELF_HEAL=false` ate existir policy, auditoria e aprovacao explicita.
 
