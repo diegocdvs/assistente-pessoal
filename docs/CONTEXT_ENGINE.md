@@ -61,6 +61,13 @@ source_counts
 high_risk_items
 warning_items
 security_events
+subscriptions_total
+subscriptions_active
+subscriptions_new
+subscriptions_recommended_for_unsubscribe
+subscriptions_waiting_approval
+subscriptions_blocked_by_security
+top_subscription_candidates
 ```
 
 `summary` contem:
@@ -70,6 +77,13 @@ total_emails
 critical_emails
 followups
 pending_action_plans
+subscriptions_total
+subscriptions_active
+subscriptions_new
+subscriptions_recommended_for_unsubscribe
+subscriptions_waiting_approval
+subscriptions_blocked_by_security
+subscription_summary_lines
 top_category
 top_priority
 total_by_category
@@ -83,6 +97,7 @@ O Context Engine usa apenas:
 - `accounts/{account_id}/emails`;
 - `accounts/{account_id}/classifications`;
 - `accounts/{account_id}/action_plans`;
+- `accounts/{account_id}/subscriptions`;
 - `runs/{run_id}`;
 - `WorkItem` conceitual reconstruido a partir dos emails persistidos.
 
@@ -170,3 +185,17 @@ security_events
 ```
 
 Esses campos sao derivados de `ThreatAnalyzer` e nao executam bloqueio, quarentena, unsubscribe ou qualquer acao automatica.
+
+## Communication Manager
+
+A partir da Release 0.7, o snapshot tambem expoe contagens de subscriptions persistidas e candidatos principais para revisao.
+
+O resumo operacional inclui frases deterministicas, por exemplo:
+
+```text
+Foram identificadas 12 inscricoes.
+4 sao candidatas a cancelamento.
+1 exige revisao de seguranca.
+```
+
+URLs e enderecos sensiveis de unsubscribe nao entram no resumo.

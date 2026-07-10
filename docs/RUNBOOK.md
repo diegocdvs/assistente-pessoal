@@ -78,6 +78,24 @@ make smoke
 
 O `make` interrompe o fluxo na primeira etapa que falhar.
 
+## 7.1 Subscriptions
+
+Resumo seguro:
+
+```bash
+make subscriptions
+```
+
+Comandos diretos:
+
+```bash
+python scripts/subscriptions.py --project-id agenda-pessoal-projeto --summary --dry-run
+python scripts/subscriptions.py --project-id agenda-pessoal-projeto --recommended --json
+python scripts/subscriptions.py --project-id agenda-pessoal-projeto --blocked --json
+```
+
+O comando nao faz unsubscribe, nao acessa links, nao envia `mailto`, nao faz scraping e nao altera providers. Targets sensiveis sao redigidos na saida.
+
 ## 8. Ler logs manualmente
 
 Quando necessario, copie o nome da execucao mostrado pelo smoke e rode:
@@ -247,6 +265,30 @@ PY
 ```
 
 O analyzer nao acessa links, nao abre anexos e nao executa policies.
+
+## 10.6 Release 0.7 - Subscription Management
+
+Validacao local:
+
+```bash
+python -m pytest tests/test_communication_manager.py tests/test_subscriptions_cli.py tests/test_subscription_detector.py
+python -m compileall app scripts
+```
+
+Firestore esperado:
+
+```text
+accounts/{account_id}/subscriptions/{subscription_id}
+```
+
+Todo `ActionPlan` `unsubscribe_subscription` deve conter:
+
+```text
+approval_required=true
+execution_enabled=false
+dry_run=true
+status=waiting_approval
+```
 
 ## 11. Erros conhecidos
 

@@ -42,6 +42,16 @@ Provider
 - divergencia de schema_version;
 - execucoes interrompidas ou silenciosamente parciais;
 - gaps de leitura por janela temporal.
+- mensagem com headers de subscription sem `SubscriptionEntity`;
+- `SubscriptionEntity` duplicada;
+- `message_count` inconsistente;
+- subscription sem `schema_version`;
+- `ActionPlan` de unsubscribe sem subscription correspondente;
+- `ActionPlan` de unsubscribe sem `approval_required=true`;
+- `ActionPlan` de unsubscribe com `execution_enabled` diferente de `false`;
+- subscription de alto risco com ActionPlan executavel;
+- subscription aprovada sem executor existente;
+- divergencia entre contagens do `ContextSnapshot` e repository.
 
 ## Modelos previstos
 
@@ -91,6 +101,8 @@ audit_runs/{audit_run_id}/discrepancies/{discrepancy_id}
 - sem abrir anexos;
 - sem acessar links;
 - sem executar ActionPlans;
+- sem executar unsubscribe;
+- sem acessar URLs ou enviar `mailto`;
 - sem apagar ou sobrescrever registros;
 - `DOUBLE_CHECK_SELF_HEAL=false` ate existir policy, auditoria e aprovacao explicita.
 

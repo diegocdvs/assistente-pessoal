@@ -275,6 +275,41 @@ schema_version
 
 `SecurityAssessment` e produzido por `ThreatAnalyzer` e nao executa acoes.
 
+### 5.7 SubscriptionEntity
+
+Representa uma comunicacao recorrente agregada, independente de Gmail ou Outlook.
+
+Campos principais:
+
+```text
+subscription_id
+account_id
+provider
+sender
+sender_domain
+display_name
+list_id
+category
+first_seen_at
+last_received_at
+message_count
+estimated_frequency
+unsubscribe_supported
+unsubscribe_methods
+unsubscribe_url
+unsubscribe_email
+one_click_supported
+status
+recommendation_score
+recommendation_reasons
+latest_security_risk_level
+latest_security_risk_score
+audit_metadata
+schema_version
+```
+
+Subscriptions sao separadas de `WorkItem` porque representam estado agregado e historico recorrente, nao uma mensagem individual.
+
 ## 6. Conectores
 
 ### 6.1 Interface desejada
@@ -441,6 +476,7 @@ runs/{run_id}
 accounts/{account_id}/emails/{message_id}
 accounts/{account_id}/classifications/{message_id}
 accounts/{account_id}/action_plans/{message_id}
+accounts/{account_id}/subscriptions/{subscription_id}
 ```
 
 Campos operacionais importantes:
@@ -635,6 +671,32 @@ review
 block
 quarantine
 ```
+
+## 12.3 Communication Manager
+
+`app/communication` gerencia subscriptions sem conhecer Gmail ou Outlook diretamente.
+
+Fluxo:
+
+```text
+EmailEntity
+ -> SubscriptionDetector
+ -> RFC Parser
+ -> SubscriptionAggregator
+ -> SubscriptionRepository
+ -> RecommendationEngine
+ -> ActionPlan unsubscribe_subscription
+```
+
+Regras:
+
+- detectar nao significa confiar;
+- recomendar nao significa aprovar;
+- aprovar nao significa executar;
+- nenhum link e acessado;
+- nenhum `mailto` e enviado;
+- nenhum unsubscribe e executado;
+- `ActionPlan` nasce com `approval_required=true`, `execution_enabled=false` e `dry_run=true`.
 
 ## 13. Segurança
 

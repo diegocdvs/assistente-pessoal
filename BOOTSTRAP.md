@@ -44,6 +44,24 @@ print(assessment.to_dict())
 
 Ela nunca acessa links, nunca abre anexos e nunca executa acoes automaticamente.
 
+## Communication Manager
+
+Subscriptions podem ser inspecionadas em modo seguro:
+
+```bash
+python scripts/subscriptions.py --project-id agenda-pessoal-projeto --summary --dry-run
+```
+
+Garantias da Release 0.7:
+
+- nao executa unsubscribe;
+- nao acessa URLs;
+- nao envia `mailto`;
+- nao faz scraping;
+- nao abre navegador;
+- nao altera Gmail ou Outlook;
+- gera apenas planos de acao com aprovacao obrigatoria e execucao desligada.
+
 ## Gmail
 
 Gmail continua usando Secret Manager com:

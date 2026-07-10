@@ -5,7 +5,7 @@ JOB_NAME ?= assistente-pessoal-diario
 SERVICE_ACCOUNT ?= assistente-pessoal-runner@$(PROJECT_ID).iam.gserviceaccount.com
 PYTHON ?= $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; elif [ -x .venv/Scripts/python.exe ]; then echo .venv/Scripts/python.exe; else echo python; fi)
 
-.PHONY: install google-token check-python-deps validate doctor smoke release deploy run-job list-jobs
+.PHONY: install google-token check-python-deps validate doctor smoke subscriptions release deploy run-job list-jobs
 
 install:
 	$(PYTHON) -m pip install -r requirements.txt
@@ -25,6 +25,9 @@ doctor:
 
 smoke:
 	$(PYTHON) scripts/smoke.py --project-id $(PROJECT_ID) --region $(REGION) --job-name $(JOB_NAME)
+
+subscriptions:
+	$(PYTHON) scripts/subscriptions.py --project-id $(PROJECT_ID) --summary --dry-run
 
 release: validate doctor deploy smoke
 

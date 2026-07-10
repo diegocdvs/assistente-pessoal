@@ -51,6 +51,7 @@ class ContextEngine:
             now=now,
         )
         subscription_candidates = self.subscription_detector.detect(emails)
+        subscriptions = data.subscriptions
         security_assessments = [self.threat_analyzer.analyze(email) for email in emails]
         followup_ids = {
             value
@@ -73,6 +74,7 @@ class ContextEngine:
             action_plans=action_plans,
             followup_count=len(followups),
             subscription_candidates=subscription_candidates,
+            subscriptions=subscriptions,
         )
 
         return ContextSnapshot(
@@ -83,6 +85,19 @@ class ContextEngine:
             emails_critical=_critical_emails(emails, data.classifications),
             followups=followups,
             subscription_candidates=subscription_candidates,
+            subscriptions_total=len(subscriptions) or len(subscription_candidates),
+            subscriptions_active=_count_subscriptions(subscriptions, "active"),
+            subscriptions_new=_count_subscriptions(subscriptions, "detected"),
+            subscriptions_recommended_for_unsubscribe=_count_subscriptions(
+                subscriptions,
+                "unsubscribe_recommended",
+                fallback=len([candidate for candidate in subscription_candidates if candidate.unsubscribe_supported]),
+            ),
+            subscriptions_waiting_approval=_count_subscriptions(subscriptions, "waiting_approval"),
+            subscriptions_blocked_by_security=len(
+                [item for item in subscriptions if item.get("latest_security_risk_level") in {"high", "critical"}]
+            ),
+            top_subscription_candidates=_top_subscription_candidates(subscriptions),
             upcoming_commitments=_upcoming_commitments(emails, data.classifications),
             important_people=_important_people(emails),
             recent_decisions=_recent_decisions(data.reports),
@@ -129,6 +144,7 @@ def _build_summary(
     action_plans: list[dict[str, Any]],
     followup_count: int,
     subscription_candidates: list[SubscriptionCandidate],
+    subscriptions: list[dict[str, Any]] | None = None,
 ) -> OperationalSummary:
     by_category = Counter(
         classification.get("category")
@@ -146,17 +162,35 @@ def _build_summary(
         if plan.get("status", "planned") in {"planned", "waiting_approval", "failed"}
     ]
     recommended = [candidate for candidate in subscription_candidates if candidate.unsubscribe_supported]
+    subscriptions = subscriptions or []
+    total_subscriptions = len(subscriptions) or len(subscription_candidates)
+    recommended_count = _count_subscriptions(
+        subscriptions,
+        "unsubscribe_recommended",
+        fallback=len(recommended),
+    )
+    blocked_count = len([item for item in subscriptions if item.get("latest_security_risk_level") in {"high", "critical"}])
     return OperationalSummary(
         total_emails=len(emails),
         critical_emails=by_priority.get("critica", 0),
         followups=followup_count,
         pending_action_plans=len(pending_plans),
         subscriptions_detected=len(subscription_candidates),
-        subscriptions_recommended_for_unsubscribe=len(recommended),
+        subscriptions_recommended_for_unsubscribe=recommended_count,
         top_category=_most_common_key(by_category),
         top_priority=_most_common_key(by_priority),
         total_by_category=dict(by_category),
         total_by_priority=dict(by_priority),
+        subscriptions_total=total_subscriptions,
+        subscriptions_active=_count_subscriptions(subscriptions, "active"),
+        subscriptions_new=_count_subscriptions(subscriptions, "detected"),
+        subscriptions_waiting_approval=_count_subscriptions(subscriptions, "waiting_approval"),
+        subscriptions_blocked_by_security=blocked_count,
+        subscription_summary_lines=[
+            f"Foram identificadas {total_subscriptions} inscricoes.",
+            f"{recommended_count} sao candidatas a cancelamento.",
+            f"{blocked_count} exige revisao de seguranca.",
+        ],
     )
 
 
@@ -218,6 +252,22 @@ def _all_action_plans(action_plans: dict[str, list[dict[str, Any]]]) -> list[dic
 
 def _most_common_key(counter: Counter) -> str | None:
     return counter.most_common(1)[0][0] if counter else None
+
+
+def _count_subscriptions(subscriptions: list[dict[str, Any]], status: str, fallback: int = 0) -> int:
+    if not subscriptions:
+        return fallback
+    return len([subscription for subscription in subscriptions if subscription.get("status") == status])
+
+
+def _top_subscription_candidates(subscriptions: list[dict[str, Any]], limit: int = 5) -> list[dict[str, Any]]:
+    sanitized = []
+    for subscription in sorted(subscriptions, key=lambda item: int(item.get("recommendation_score") or 0), reverse=True)[:limit]:
+        payload = dict(subscription)
+        payload.pop("unsubscribe_url", None)
+        payload.pop("unsubscribe_email", None)
+        sanitized.append(payload)
+    return sanitized
 
 
 def _sender_identity(value: str) -> str:

@@ -186,4 +186,15 @@ Toda `SecurityAssessment` e serializavel e pode ser revalidada futuramente. A Re
 
 ## Subscription Manager
 
-`List-Unsubscribe` e analisado como sinal de seguranca antes de qualquer unsubscribe futuro. A Release 0.5 nao executa unsubscribe.
+`List-Unsubscribe` e analisado como sinal de seguranca antes de qualquer unsubscribe futuro.
+
+Na Release 0.7, o Communication Manager consome `SecurityAssessment` para preencher risco em `SubscriptionEntity` e bloquear qualquer plano executavel quando houver risco `high`, `critical`, `block` ou `quarantine`.
+
+O sistema continua proibido de:
+
+- acessar links de unsubscribe;
+- seguir redirects;
+- enviar `mailto`;
+- fazer scraping;
+- abrir navegador;
+- executar unsubscribe.

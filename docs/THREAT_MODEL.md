@@ -34,9 +34,10 @@ Todo cruzamento deve validar entrada, limitar privilegios e registrar auditoria.
 5. Prompt injection futura via conteudo externo.
 6. Duplicidade, perda ou classificacao incorreta de dados.
 7. Acoes mutaveis sem autorizacao.
-8. Dependencias comprometidas.
-9. Logs contendo dados sensiveis.
-10. Falha silenciosa na leitura ou persistencia.
+8. Unsubscribe malicioso via URL, redirect, `mailto` ou header forjado.
+9. Dependencias comprometidas.
+10. Logs contendo dados sensiveis.
+11. Falha silenciosa na leitura ou persistencia.
 
 ## Mitigacoes atuais
 
@@ -58,6 +59,7 @@ Todo cruzamento deve validar entrada, limitar privilegios e registrar auditoria.
 - auditoria de dependencias;
 - confirmacao explicita para unsubscribe e demais mutacoes;
 - Double Check independente e read-only.
+- Subscription Management separado de qualquer executor, com aprovacao explicita e targets redigidos.
 
 ## Regra de atualizacao
 

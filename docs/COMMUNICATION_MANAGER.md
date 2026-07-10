@@ -1,6 +1,6 @@
 # Communication Manager
 
-Status: planejado
+Status: fundacao implementada na Release 0.7
 
 ## Objetivo
 
@@ -14,7 +14,21 @@ Consolidar capacidades de comunicacao pessoal em uma camada unica, sem acoplar o
 4. Notification Manager.
 5. Communication Audit.
 
-## Subscription Manager
+## Subscription Manager - Release 0.7
+
+Fluxo implementado:
+
+```text
+EmailEntity
+ -> SubscriptionDetector
+ -> RFC Parser
+ -> SubscriptionAggregator
+ -> SubscriptionRepository
+ -> RecommendationEngine
+ -> ActionPlan waiting_approval
+```
+
+Nao ha executor de unsubscribe.
 
 ### Entrada
 
@@ -32,11 +46,11 @@ Priorizar sinais padronizados:
 - `Auto-Submitted`;
 - recorrencia de remetente como sinal complementar.
 
-### Entidade alvo
+### Entidade
 
 `SubscriptionEntity` deve conter:
 
-- id;
+- subscription_id;
 - account_id;
 - provider;
 - sender;
@@ -46,12 +60,17 @@ Priorizar sinais padronizados:
 - first_seen_at;
 - last_received_at;
 - message_count;
-- frequency_estimate;
+- estimated_frequency;
 - unsubscribe_supported;
-- unsubscribe_method;
-- unsubscribe_url ou unsubscribe_email;
+- unsubscribe_methods;
+- unsubscribe_url;
+- unsubscribe_email;
+- one_click_supported;
 - status;
-- risk_score;
+- recommendation_score;
+- recommendation_reasons;
+- latest_security_risk_level;
+- latest_security_risk_score;
 - audit_metadata;
 - schema_version.
 
@@ -61,8 +80,9 @@ Priorizar sinais padronizados:
 - active;
 - ignored;
 - favorite;
-- unsubscribe_proposed;
-- unsubscribe_approved;
+- unsubscribe_recommended;
+- waiting_approval;
+- approved;
 - unsubscribed;
 - failed;
 - quarantined.
@@ -138,3 +158,60 @@ Nunca:
 - abertura de anexos;
 - IA para clicar ou navegar;
 - alteracao de mensagens na origem.
+
+## Parser RFC
+
+O parser em `app/communication/rfc_parser.py` interpreta:
+
+- multiplos valores em `List-Unsubscribe`;
+- URLs HTTP/HTTPS;
+- `mailto`;
+- `List-Unsubscribe-Post: List-Unsubscribe=One-Click`;
+- casing e espacos variados;
+- valores malformados;
+- mecanismos duplicados.
+
+Ele nunca faz requisicoes, nunca valida disponibilidade externa e nunca segue redirects.
+
+## Aggregation
+
+`SubscriptionAggregator` consolida de forma deterministica e idempotente:
+
+1. `account_id + provider + List-ID`;
+2. `account_id + provider + sender_domain + unsubscribe target`;
+3. `account_id + provider + sender`.
+
+## Repository
+
+Contratos implementados:
+
+- `InMemorySubscriptionRepository`;
+- `FirestoreSubscriptionRepository`.
+
+Persistencia:
+
+```text
+accounts/{account_id}/subscriptions/{subscription_id}
+```
+
+## Recommendation Engine
+
+O algoritmo e deterministico e considera categoria, volume, frequencia, mecanismo RFC e risco de seguranca.
+
+Regras atuais:
+
+- `favorite` nao e recomendada automaticamente;
+- `ignored` nao reaparece repetidamente;
+- ausencia de mecanismo RFC impede ActionPlan;
+- risco `high` ou `critical` bloqueia execucao e exige revisao manual;
+- recomendacao nao e aprovacao.
+
+## Approval
+
+`SubscriptionApproval` existe como contrato com status:
+
+```text
+pending, approved, rejected, expired, revoked
+```
+
+Nesta release, aprovacao nao aciona executor porque executor real nao existe.

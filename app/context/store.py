@@ -11,6 +11,7 @@ class ContextData:
     emails: list[dict[str, Any]] = field(default_factory=list)
     classifications: dict[str, dict[str, Any]] = field(default_factory=dict)
     action_plans: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+    subscriptions: list[dict[str, Any]] = field(default_factory=list)
     reports: list[dict[str, Any]] = field(default_factory=list)
 
 
@@ -26,12 +27,14 @@ class InMemoryContextRepository:
         emails: list[dict[str, Any]] | None = None,
         classifications: dict[str, dict[str, Any]] | None = None,
         action_plans: dict[str, list[dict[str, Any]]] | None = None,
+        subscriptions: list[dict[str, Any]] | None = None,
         reports: list[dict[str, Any]] | None = None,
     ) -> None:
         self.data = ContextData(
             emails=emails or [],
             classifications=classifications or {},
             action_plans=action_plans or {},
+            subscriptions=subscriptions or [],
             reports=reports or [],
         )
 
@@ -53,6 +56,11 @@ class InMemoryContextRepository:
                 for message_id, plans in self.data.action_plans.items()
                 if message_id in message_ids
             },
+            subscriptions=[
+                subscription
+                for subscription in self.data.subscriptions
+                if subscription.get("account_id") in allowed
+            ],
             reports=[
                 report
                 for report in self.data.reports
@@ -70,6 +78,7 @@ class FirestoreContextRepository:
         emails: list[dict[str, Any]] = []
         classifications: dict[str, dict[str, Any]] = {}
         action_plans: dict[str, list[dict[str, Any]]] = {}
+        subscriptions: list[dict[str, Any]] = []
 
         for account_doc in account_documents:
             for email_doc in account_doc.collection("emails").limit(limit).stream():
@@ -88,6 +97,12 @@ class FirestoreContextRepository:
                 message_id = str(payload.get("message_id") or plan_doc.id)
                 action_plans[message_id] = _flatten_plans(payload)
 
+            for subscription_doc in account_doc.collection("subscriptions").limit(limit).stream():
+                payload = subscription_doc.to_dict() or {}
+                payload.setdefault("subscription_id", subscription_doc.id)
+                payload.setdefault("account_id", account_doc.id)
+                subscriptions.append(payload)
+
         reports = [
             run_doc.to_dict() or {}
             for run_doc in self.client.collection("runs").limit(limit).stream()
@@ -96,6 +111,7 @@ class FirestoreContextRepository:
             emails=emails[:limit],
             classifications=classifications,
             action_plans=action_plans,
+            subscriptions=subscriptions[:limit],
             reports=reports,
         )
 
