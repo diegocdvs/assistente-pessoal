@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from app.communication.models import SubscriptionCandidate
 from app.core.models import SCHEMA_VERSION
 
 
@@ -44,6 +45,8 @@ class OperationalSummary:
     critical_emails: int
     followups: int
     pending_action_plans: int
+    subscriptions_detected: int
+    subscriptions_recommended_for_unsubscribe: int
     top_category: str | None
     top_priority: str | None
     total_by_category: dict[str, int]
@@ -61,6 +64,7 @@ class ContextSnapshot:
     emails_pending: list[dict[str, Any]]
     emails_critical: list[dict[str, Any]]
     followups: list[FollowUpSuggestion]
+    subscription_candidates: list[SubscriptionCandidate]
     upcoming_commitments: list[dict[str, Any]]
     important_people: list[str]
     recent_decisions: list[dict[str, Any]]
@@ -80,6 +84,7 @@ class ContextSnapshot:
             emails_pending=[],
             emails_critical=[],
             followups=[],
+            subscription_candidates=[],
             upcoming_commitments=[],
             important_people=[],
             recent_decisions=[],
@@ -91,6 +96,8 @@ class ContextSnapshot:
                 critical_emails=0,
                 followups=0,
                 pending_action_plans=0,
+                subscriptions_detected=0,
+                subscriptions_recommended_for_unsubscribe=0,
                 top_category=None,
                 top_priority=None,
                 total_by_category={},
@@ -108,6 +115,7 @@ class ContextSnapshot:
             "emails_pending": list(self.emails_pending),
             "emails_critical": list(self.emails_critical),
             "followups": [followup.to_dict() for followup in self.followups],
+            "subscription_candidates": [candidate.to_dict() for candidate in self.subscription_candidates],
             "upcoming_commitments": list(self.upcoming_commitments),
             "important_people": list(self.important_people),
             "recent_decisions": list(self.recent_decisions),
