@@ -9,8 +9,12 @@ accounts:
     enabled: true
     secret_prefix: google-pessoal
     max_emails: 25
+    capabilities:
+      - email
     calendar:
       enabled: false
+      ids:
+        - primary
     firestore:
       enabled: true
     policies:
@@ -27,8 +31,12 @@ accounts:
     enabled: false
     secret_prefix: google-profissional
     max_emails: 25
+    capabilities:
+      - email
     calendar:
       enabled: false
+      ids:
+        - primary
     firestore:
       enabled: true
     policies:
@@ -45,8 +53,12 @@ accounts:
     enabled: false
     secret_prefix: outlook-profissional
     max_emails: 25
+    capabilities:
+      - email
     calendar:
       enabled: false
+      ids:
+        - primary
     firestore:
       enabled: true
     policies:

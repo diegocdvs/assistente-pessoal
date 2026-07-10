@@ -12,6 +12,7 @@ class ContextData:
     classifications: dict[str, dict[str, Any]] = field(default_factory=dict)
     action_plans: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
     subscriptions: list[dict[str, Any]] = field(default_factory=list)
+    calendar_events: list[dict[str, Any]] = field(default_factory=list)
     reports: list[dict[str, Any]] = field(default_factory=list)
 
 
@@ -28,6 +29,7 @@ class InMemoryContextRepository:
         classifications: dict[str, dict[str, Any]] | None = None,
         action_plans: dict[str, list[dict[str, Any]]] | None = None,
         subscriptions: list[dict[str, Any]] | None = None,
+        calendar_events: list[dict[str, Any]] | None = None,
         reports: list[dict[str, Any]] | None = None,
     ) -> None:
         self.data = ContextData(
@@ -35,6 +37,7 @@ class InMemoryContextRepository:
             classifications=classifications or {},
             action_plans=action_plans or {},
             subscriptions=subscriptions or [],
+            calendar_events=calendar_events or [],
             reports=reports or [],
         )
 
@@ -61,6 +64,11 @@ class InMemoryContextRepository:
                 for subscription in self.data.subscriptions
                 if subscription.get("account_id") in allowed
             ],
+            calendar_events=[
+                event
+                for event in self.data.calendar_events
+                if event.get("account_id") in allowed
+            ],
             reports=[
                 report
                 for report in self.data.reports
@@ -79,6 +87,7 @@ class FirestoreContextRepository:
         classifications: dict[str, dict[str, Any]] = {}
         action_plans: dict[str, list[dict[str, Any]]] = {}
         subscriptions: list[dict[str, Any]] = []
+        calendar_events: list[dict[str, Any]] = []
 
         for account_doc in account_documents:
             for email_doc in account_doc.collection("emails").limit(limit).stream():
@@ -103,6 +112,12 @@ class FirestoreContextRepository:
                 payload.setdefault("account_id", account_doc.id)
                 subscriptions.append(payload)
 
+            for event_doc in account_doc.collection("calendar_events").limit(limit).stream():
+                payload = event_doc.to_dict() or {}
+                payload.setdefault("id", event_doc.id)
+                payload.setdefault("account_id", account_doc.id)
+                calendar_events.append(payload)
+
         reports = [
             run_doc.to_dict() or {}
             for run_doc in self.client.collection("runs").limit(limit).stream()
@@ -112,6 +127,7 @@ class FirestoreContextRepository:
             classifications=classifications,
             action_plans=action_plans,
             subscriptions=subscriptions[:limit],
+            calendar_events=calendar_events[:limit],
             reports=reports,
         )
 

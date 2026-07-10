@@ -78,6 +78,16 @@ class ContextSnapshot:
     subscriptions_waiting_approval: int
     subscriptions_blocked_by_security: int
     top_subscription_candidates: list[dict[str, Any]]
+    calendar_events_today: list[dict[str, Any]]
+    calendar_events_tomorrow: list[dict[str, Any]]
+    calendar_events_upcoming: int
+    all_day_events_today: list[dict[str, Any]]
+    next_event: dict[str, Any] | None
+    meetings_count_today: int
+    free_windows_today: list[dict[str, Any]]
+    calendar_conflicts: list[dict[str, Any]]
+    declined_events: list[dict[str, Any]]
+    calendar_security_warnings: list[dict[str, Any]]
     upcoming_commitments: list[dict[str, Any]]
     important_people: list[str]
     recent_decisions: list[dict[str, Any]]
@@ -108,6 +118,16 @@ class ContextSnapshot:
             subscriptions_waiting_approval=0,
             subscriptions_blocked_by_security=0,
             top_subscription_candidates=[],
+            calendar_events_today=[],
+            calendar_events_tomorrow=[],
+            calendar_events_upcoming=0,
+            all_day_events_today=[],
+            next_event=None,
+            meetings_count_today=0,
+            free_windows_today=[],
+            calendar_conflicts=[],
+            declined_events=[],
+            calendar_security_warnings=[],
             upcoming_commitments=[],
             important_people=[],
             recent_decisions=[],
@@ -154,6 +174,16 @@ class ContextSnapshot:
             "subscriptions_waiting_approval": self.subscriptions_waiting_approval,
             "subscriptions_blocked_by_security": self.subscriptions_blocked_by_security,
             "top_subscription_candidates": list(self.top_subscription_candidates),
+            "calendar_events_today": list(self.calendar_events_today),
+            "calendar_events_tomorrow": list(self.calendar_events_tomorrow),
+            "calendar_events_upcoming": self.calendar_events_upcoming,
+            "all_day_events_today": list(self.all_day_events_today),
+            "next_event": self.next_event,
+            "meetings_count_today": self.meetings_count_today,
+            "free_windows_today": list(self.free_windows_today),
+            "calendar_conflicts": list(self.calendar_conflicts),
+            "declined_events": list(self.declined_events),
+            "calendar_security_warnings": list(self.calendar_security_warnings),
             "upcoming_commitments": list(self.upcoming_commitments),
             "important_people": list(self.important_people),
             "recent_decisions": list(self.recent_decisions),

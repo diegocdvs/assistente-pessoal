@@ -12,6 +12,10 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
 ]
+CALENDAR_READONLY_SCOPES = [
+    "https://www.googleapis.com/auth/calendar.events.readonly",
+    "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
+]
 
 
 def resolve_gcloud() -> str:
@@ -65,13 +69,18 @@ def main() -> None:
     parser.add_argument("--client-secret-file", required=True)
     parser.add_argument("--project-id", default="agenda-pessoal-projeto")
     parser.add_argument("--secret-prefix", default="google-pessoal")
+    parser.add_argument("--include-calendar-readonly", action="store_true")
     args = parser.parse_args()
 
     client_secret_path = Path(args.client_secret_file)
     if not client_secret_path.exists():
         raise FileNotFoundError(f"Arquivo nao encontrado: {client_secret_path}")
 
-    flow = InstalledAppFlow.from_client_secrets_file(str(client_secret_path), scopes=SCOPES)
+    scopes = [*SCOPES, *(CALENDAR_READONLY_SCOPES if args.include_calendar_readonly else [])]
+    print("Escopos solicitados:")
+    for scope in scopes:
+        print(f"- {scope}")
+    flow = InstalledAppFlow.from_client_secrets_file(str(client_secret_path), scopes=scopes)
     creds = flow.run_local_server(port=0, prompt="consent", access_type="offline")
 
     if not creds.refresh_token:
