@@ -2,7 +2,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from datetime import datetime, timezone
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path = [path for path in sys.path if Path(path or ".").resolve() != SCRIPT_DIR]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.calendar import DailyAgendaBuilder
 from app.context import ContextEngine, FirestoreContextRepository
