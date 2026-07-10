@@ -128,6 +128,57 @@ python scripts/daily_brief.py --project-id agenda-pessoal-projeto --json --no-pe
 
 O Daily Brief nao envia mensagens, nao chama providers e nao executa ActionPlans.
 
+## 7.4 Daily Brief Delivery
+
+Defaults seguros:
+
+```bash
+DAILY_BRIEF_DELIVERY_ENABLED=false
+DAILY_BRIEF_DELIVERY_MODE=disabled
+DAILY_BRIEF_DELIVERY_ALLOW_SEND=false
+```
+
+Criar rascunho, quando configurado:
+
+```bash
+make daily-brief-draft
+```
+
+Entregar conforme variaveis de ambiente:
+
+```bash
+make daily-brief-deliver
+```
+
+Comando direto seguro:
+
+```bash
+python scripts/daily_brief_delivery.py --project-id agenda-pessoal-projeto --mode draft --dry-run --use-last-brief --json
+```
+
+Para habilitar rascunho:
+
+```bash
+DAILY_BRIEF_DELIVERY_ENABLED=true
+DAILY_BRIEF_DELIVERY_MODE=draft
+DAILY_BRIEF_DELIVERY_RECIPIENTS=destinatario@example.com
+```
+
+Para envio real, alem da allowlist:
+
+```bash
+DAILY_BRIEF_DELIVERY_MODE=send
+DAILY_BRIEF_DELIVERY_ALLOW_SEND=true
+```
+
+Auditoria esperada:
+
+```text
+daily_brief_deliveries/{delivery_id}
+```
+
+O corpo do e-mail nao e persistido.
+
 ## 8. Ler logs manualmente
 
 Quando necessario, copie o nome da execucao mostrado pelo smoke e rode:
@@ -348,6 +399,30 @@ Validacao local:
 python -m pytest tests/test_daily_brief.py
 python scripts/daily_brief.py --help
 python -m scripts.daily_brief --help
+```
+
+## 10.9 Release 0.10 - Daily Brief Delivery
+
+Validacao local:
+
+```bash
+python -m pytest tests/test_daily_brief_delivery.py
+python scripts/daily_brief_delivery.py --help
+python -m scripts.daily_brief_delivery --help
+```
+
+Setup OAuth opcional:
+
+```bash
+python scripts/google_oauth_local.py --client-secret-file client_secret.json --include-gmail-draft
+python scripts/google_oauth_local.py --client-secret-file client_secret.json --include-gmail-send
+```
+
+Escopos:
+
+```text
+https://www.googleapis.com/auth/gmail.compose
+https://www.googleapis.com/auth/gmail.send
 ```
 
 ## 11. Erros conhecidos

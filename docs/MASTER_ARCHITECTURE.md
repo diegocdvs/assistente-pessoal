@@ -495,6 +495,8 @@ accounts/{account_id}/action_plans/{message_id}
 accounts/{account_id}/subscriptions/{subscription_id}
 accounts/{account_id}/calendar_events/{event_id}
 daily_agendas/{date}
+daily_briefs/{date}:{scope}
+daily_brief_deliveries/{delivery_id}
 ```
 
 Campos operacionais importantes:
@@ -745,6 +747,42 @@ ContextRepository
 
 `DailyBrief` e a visao operacional consolidada do dia. Ele e diferente de `DailyAgenda`, que e centrada em compromissos. O brief nao acessa providers, nao usa IA e nao executa acoes.
 
+## 12.6 Daily Brief Delivery
+
+Fluxo opcional e desligado por padrao:
+
+```text
+DailyBrief
+ -> Delivery Policy
+ -> Email Renderer
+ -> Draft or Send
+ -> Delivery Audit
+```
+
+`app/daily_brief_delivery` e separado de `GmailConnector`.
+
+Regras:
+
+- `DAILY_BRIEF_DELIVERY_ENABLED=false` por padrao;
+- `DAILY_BRIEF_DELIVERY_MODE=disabled` por padrao;
+- `send` exige `DAILY_BRIEF_DELIVERY_ALLOW_SEND=true`;
+- destinatario deve estar em allowlist;
+- o corpo do e-mail nao e persistido;
+- entrega real usa `GmailDailyBriefDeliveryClient`, que nao le inbox.
+
+Persistencia:
+
+```text
+daily_brief_deliveries/{delivery_id}
+```
+
+Docs:
+
+```text
+docs/DAILY_BRIEF_DELIVERY.md
+docs/adr/ADR-015-daily-brief-email-delivery.md
+```
+
 ## 13. Segurança
 
 ### 13.1 Secrets
@@ -772,6 +810,15 @@ calendar.events
 ```
 
 Mesmo com `gmail.modify` e `calendar.events`, o código deve operar como somente leitura enquanto `DRY_RUN=true`.
+
+Escopos opcionais de Daily Brief Delivery:
+
+```text
+https://www.googleapis.com/auth/gmail.compose
+https://www.googleapis.com/auth/gmail.send
+```
+
+Esses escopos sao solicitados apenas quando o operador usa `scripts/google_oauth_local.py --include-gmail-draft` ou `--include-gmail-send`.
 
 ### 13.3 Menor privilégio
 

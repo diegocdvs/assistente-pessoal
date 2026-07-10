@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from app.calendar.config import CalendarSettings
+from app.daily_brief_delivery.policy import DeliveryPolicySettings
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -46,6 +47,24 @@ class DailyBriefSettings:
 
 
 @dataclass(frozen=True)
+class DailyBriefDeliverySettings(DeliveryPolicySettings):
+    sender_account_id: str = "pessoal_google"
+    secret_prefix: str = "google-pessoal"
+    force: bool = False
+
+    def validate(self) -> None:
+        from zoneinfo import ZoneInfo
+
+        if self.mode not in {"disabled", "draft", "send"}:
+            raise ValueError("DAILY_BRIEF_DELIVERY_MODE deve ser disabled, draft ou send.")
+        if "*" in self.recipients:
+            raise ValueError("DAILY_BRIEF_DELIVERY_RECIPIENTS nao aceita wildcard.")
+        if self.start_hour < 0 or self.start_hour > 23 or self.end_hour < 0 or self.end_hour > 24:
+            raise ValueError("Janela de entrega do Daily Brief invalida.")
+        ZoneInfo(self.timezone)
+
+
+@dataclass(frozen=True)
 class Settings:
     project_id: str
     region: str = "southamerica-east1"
@@ -56,6 +75,7 @@ class Settings:
     limits: Limits = field(default_factory=Limits)
     calendar: CalendarSettings = field(default_factory=CalendarSettings)
     daily_brief: DailyBriefSettings = field(default_factory=DailyBriefSettings)
+    daily_brief_delivery: DailyBriefDeliverySettings = field(default_factory=DailyBriefDeliverySettings)
 
 
 def load_settings() -> Settings:
@@ -102,5 +122,21 @@ def load_settings() -> Settings:
             persist=_env_bool("DAILY_BRIEF_PERSIST", True),
             include_tomorrow=_env_bool("DAILY_BRIEF_INCLUDE_TOMORROW", True),
             include_low_priority=_env_bool("DAILY_BRIEF_INCLUDE_LOW_PRIORITY", False),
+        ),
+        daily_brief_delivery=DailyBriefDeliverySettings(
+            enabled=_env_bool("DAILY_BRIEF_DELIVERY_ENABLED", False),
+            mode=os.environ.get("DAILY_BRIEF_DELIVERY_MODE", "disabled"),
+            recipients=tuple(
+                item.strip()
+                for item in os.environ.get("DAILY_BRIEF_DELIVERY_RECIPIENTS", "").split(",")
+                if item.strip()
+            ),
+            allow_send=_env_bool("DAILY_BRIEF_DELIVERY_ALLOW_SEND", False),
+            start_hour=int(os.environ.get("DAILY_BRIEF_DELIVERY_START_HOUR", "5")),
+            end_hour=int(os.environ.get("DAILY_BRIEF_DELIVERY_END_HOUR", "11")),
+            timezone=os.environ.get("DAILY_BRIEF_DELIVERY_TIMEZONE", os.environ.get("DAILY_BRIEF_TIMEZONE", "America/Sao_Paulo")),
+            sender_account_id=os.environ.get("DAILY_BRIEF_DELIVERY_SENDER_ACCOUNT_ID", "pessoal_google"),
+            secret_prefix=os.environ.get("DAILY_BRIEF_DELIVERY_SECRET_PREFIX", "google-pessoal"),
+            force=_env_bool("DAILY_BRIEF_DELIVERY_FORCE", False),
         ),
     )

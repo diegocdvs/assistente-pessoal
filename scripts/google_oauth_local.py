@@ -16,6 +16,12 @@ CALENDAR_READONLY_SCOPES = [
     "https://www.googleapis.com/auth/calendar.events.readonly",
     "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
 ]
+GMAIL_DRAFT_SCOPES = [
+    "https://www.googleapis.com/auth/gmail.compose",
+]
+GMAIL_SEND_SCOPES = [
+    "https://www.googleapis.com/auth/gmail.send",
+]
 
 
 def resolve_gcloud() -> str:
@@ -70,13 +76,20 @@ def main() -> None:
     parser.add_argument("--project-id", default="agenda-pessoal-projeto")
     parser.add_argument("--secret-prefix", default="google-pessoal")
     parser.add_argument("--include-calendar-readonly", action="store_true")
+    parser.add_argument("--include-gmail-draft", action="store_true")
+    parser.add_argument("--include-gmail-send", action="store_true")
     args = parser.parse_args()
 
     client_secret_path = Path(args.client_secret_file)
     if not client_secret_path.exists():
         raise FileNotFoundError(f"Arquivo nao encontrado: {client_secret_path}")
 
-    scopes = [*SCOPES, *(CALENDAR_READONLY_SCOPES if args.include_calendar_readonly else [])]
+    scopes = [
+        *SCOPES,
+        *(CALENDAR_READONLY_SCOPES if args.include_calendar_readonly else []),
+        *(GMAIL_DRAFT_SCOPES if args.include_gmail_draft else []),
+        *(GMAIL_SEND_SCOPES if args.include_gmail_send else []),
+    ]
     print("Escopos solicitados:")
     for scope in scopes:
         print(f"- {scope}")

@@ -70,11 +70,14 @@ O Daily Brief:
 - nao usa IA;
 - nao acessa links;
 - nao abre anexos;
-- nao envia emails ou WhatsApp;
+- nao envia emails ou WhatsApp diretamente;
 - nao executa ActionPlans;
 - nao modifica providers;
 - nao exibe tokens, secrets, corpos completos ou URLs completas.
 
+Entrega por e-mail, quando habilitada, e responsabilidade separada de `app/daily_brief_delivery`.
+Consulte `docs/DAILY_BRIEF_DELIVERY.md`.
+
 ## Futuro
 
-Email, WhatsApp, push notification e Dashboard poderao consumir o mesmo modelo `DailyBrief` em releases posteriores.
+WhatsApp, push notification e Dashboard poderao consumir o mesmo modelo `DailyBrief` em releases posteriores.
