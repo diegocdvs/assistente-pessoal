@@ -215,3 +215,7 @@ pending, approved, rejected, expired, revoked
 ```
 
 Nesta release, aprovacao nao aciona executor porque executor real nao existe.
+
+## Daily Brief
+
+O Daily Brief consome subscriptions recomendadas e aguardando aprovacao via `ContextSnapshot`. Ele nao executa unsubscribe e nao altera status de subscriptions.

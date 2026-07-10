@@ -60,6 +60,12 @@ Provider
 - daily agenda inconsistente;
 - conflito nao detectado;
 - `SecurityAssessment` ausente quando aplicavel.
+- DailyBrief sem `schema_version`;
+- brief duplicado;
+- metricas divergentes das secoes;
+- status incompativel com riscos;
+- brief de data incorreta;
+- ultimo brief inconsistente com ultimo `ContextSnapshot`.
 
 ## Modelos previstos
 

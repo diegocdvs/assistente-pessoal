@@ -25,6 +25,7 @@ Ela fornece:
 - Planos de unsubscribe exigem aprovacao e permanecem `execution_enabled=false`.
 - Calendar e read-only: nao cria, altera, exclui, move ou responde eventos.
 - Meeting URLs e links de eventos nunca sao acessados automaticamente.
+- Daily Brief nao exibe corpos completos, descricoes completas, URLs completas, tokens ou secrets.
 
 ## Decisoes
 

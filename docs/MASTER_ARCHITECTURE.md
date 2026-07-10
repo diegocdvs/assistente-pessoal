@@ -731,6 +731,20 @@ Google Calendar
 
 O CalendarConnector lista calendarios e eventos, mas nao cria, altera, exclui, move ou responde convites.
 
+## 12.5 Daily Brief
+
+Fluxo:
+
+```text
+ContextRepository
+ -> ContextEngine
+ -> ContextSnapshot
+ -> DailyBriefBuilder
+ -> DailyBrief
+```
+
+`DailyBrief` e a visao operacional consolidada do dia. Ele e diferente de `DailyAgenda`, que e centrada em compromissos. O brief nao acessa providers, nao usa IA e nao executa acoes.
+
 ## 13. Segurança
 
 ### 13.1 Secrets

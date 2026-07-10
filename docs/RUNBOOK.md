@@ -112,6 +112,22 @@ python scripts/calendar.py --project-id agenda-pessoal-projeto --daily-agenda --
 
 O comando nao cria, altera, exclui, move ou responde eventos. Se aparecer `invalid_scope` ou `insufficientPermissions`, reautorize com os escopos read-only documentados em `docs/setup/GOOGLE_CALENDAR_SETUP.md`.
 
+## 7.3 Daily Brief
+
+```bash
+make daily-brief
+make daily-brief-json
+```
+
+Comandos diretos:
+
+```bash
+python scripts/daily_brief.py --project-id agenda-pessoal-projeto --dry-run
+python scripts/daily_brief.py --project-id agenda-pessoal-projeto --json --no-persist
+```
+
+O Daily Brief nao envia mensagens, nao chama providers e nao executa ActionPlans.
+
 ## 8. Ler logs manualmente
 
 Quando necessario, copie o nome da execucao mostrado pelo smoke e rode:
@@ -322,6 +338,16 @@ make validate
 make calendar
 make double-check
 make release
+```
+
+## 10.8 Release 0.9 - Daily Brief
+
+Validacao local:
+
+```bash
+python -m pytest tests/test_daily_brief.py
+python scripts/daily_brief.py --help
+python -m scripts.daily_brief --help
 ```
 
 ## 11. Erros conhecidos
