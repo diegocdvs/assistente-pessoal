@@ -21,6 +21,8 @@ Ela fornece:
 - Nao executa unsubscribe.
 - Nao move, exclui, marca ou envia mensagens.
 - Nao chama IA, ML, sandbox ou APIs externas.
+- Subscription Management nao acessa URLs, nao envia `mailto`, nao faz scraping e nao abre navegador.
+- Planos de unsubscribe exigem aprovacao e permanecem `execution_enabled=false`.
 
 ## Decisoes
 
@@ -34,7 +36,7 @@ block
 quarantine
 ```
 
-Na Release 0.5, essas decisoes sao apenas retornadas. Nenhum bloqueio real e executado.
+Na Release 0.5, essas decisoes sao apenas retornadas. A Release 0.7 usa risco alto/critico para impedir planos executaveis de unsubscribe e exigir revisao manual. Nenhum bloqueio real e executado.
 
 ## Uso
 

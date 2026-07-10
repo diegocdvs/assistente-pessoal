@@ -51,6 +51,12 @@ class OperationalSummary:
     top_priority: str | None
     total_by_category: dict[str, int]
     total_by_priority: dict[str, int]
+    subscriptions_total: int = 0
+    subscriptions_active: int = 0
+    subscriptions_new: int = 0
+    subscriptions_waiting_approval: int = 0
+    subscriptions_blocked_by_security: int = 0
+    subscription_summary_lines: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {**asdict(self), "schema_version": SCHEMA_VERSION}
@@ -65,6 +71,13 @@ class ContextSnapshot:
     emails_critical: list[dict[str, Any]]
     followups: list[FollowUpSuggestion]
     subscription_candidates: list[SubscriptionCandidate]
+    subscriptions_total: int
+    subscriptions_active: int
+    subscriptions_new: int
+    subscriptions_recommended_for_unsubscribe: int
+    subscriptions_waiting_approval: int
+    subscriptions_blocked_by_security: int
+    top_subscription_candidates: list[dict[str, Any]]
     upcoming_commitments: list[dict[str, Any]]
     important_people: list[str]
     recent_decisions: list[dict[str, Any]]
@@ -88,6 +101,13 @@ class ContextSnapshot:
             emails_critical=[],
             followups=[],
             subscription_candidates=[],
+            subscriptions_total=0,
+            subscriptions_active=0,
+            subscriptions_new=0,
+            subscriptions_recommended_for_unsubscribe=0,
+            subscriptions_waiting_approval=0,
+            subscriptions_blocked_by_security=0,
+            top_subscription_candidates=[],
             upcoming_commitments=[],
             important_people=[],
             recent_decisions=[],
@@ -104,6 +124,11 @@ class ContextSnapshot:
                 pending_action_plans=0,
                 subscriptions_detected=0,
                 subscriptions_recommended_for_unsubscribe=0,
+                subscriptions_total=0,
+                subscriptions_active=0,
+                subscriptions_new=0,
+                subscriptions_waiting_approval=0,
+                subscriptions_blocked_by_security=0,
                 top_category=None,
                 top_priority=None,
                 total_by_category={},
@@ -122,6 +147,13 @@ class ContextSnapshot:
             "emails_critical": list(self.emails_critical),
             "followups": [followup.to_dict() for followup in self.followups],
             "subscription_candidates": [candidate.to_dict() for candidate in self.subscription_candidates],
+            "subscriptions_total": self.subscriptions_total,
+            "subscriptions_active": self.subscriptions_active,
+            "subscriptions_new": self.subscriptions_new,
+            "subscriptions_recommended_for_unsubscribe": self.subscriptions_recommended_for_unsubscribe,
+            "subscriptions_waiting_approval": self.subscriptions_waiting_approval,
+            "subscriptions_blocked_by_security": self.subscriptions_blocked_by_security,
+            "top_subscription_candidates": list(self.top_subscription_candidates),
             "upcoming_commitments": list(self.upcoming_commitments),
             "important_people": list(self.important_people),
             "recent_decisions": list(self.recent_decisions),

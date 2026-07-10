@@ -92,6 +92,21 @@ docs/SECURITY_ARCHITECTURE.md
 docs/adr/ADR-010-security-capability.md
 ```
 
+## Release 0.7 - Communication Manager / Subscription Management
+
+A Release 0.7 cria a fundacao segura para newsletters, listas e comunicacoes recorrentes:
+
+- `SubscriptionEntity` agrega subscriptions por conta/provider;
+- parser RFC interpreta headers de lista sem acessar rede;
+- agregacao idempotente usa `List-ID`, dominio + target oficial ou remetente;
+- subscriptions sao persistidas em `accounts/{account_id}/subscriptions/{subscription_id}`;
+- recomendacao deterministica pode gerar `ActionPlan` `unsubscribe_subscription`;
+- todo plano nasce `dry_run=true`, `waiting_approval`, `approval_required=true` e `execution_enabled=false`;
+- alto risco de seguranca exige revisao manual;
+- `scripts/subscriptions.py` lista e resume subscriptions sem executar unsubscribe.
+
+Esta release nao acessa links, nao envia `mailto`, nao faz scraping, nao abre navegador e nao altera Gmail ou Outlook.
+
 ## Sprint 1.5
 
 A base foi consolidada em um pipeline desacoplado:
@@ -153,12 +168,29 @@ type, reason, dry_run, status, payload, id, source, created_at, updated_at, audi
 
 `ActionPlan` continua sendo apenas planejado. Nao ha executor real nesta release.
 
+`SubscriptionEntity`:
+
+```text
+subscription_id, account_id, provider, sender, sender_domain, display_name,
+list_id, category, first_seen_at, last_received_at, message_count,
+estimated_frequency, unsubscribe_supported, unsubscribe_methods,
+unsubscribe_url, unsubscribe_email, one_click_supported, status,
+recommendation_score, recommendation_reasons, latest_security_risk_level,
+latest_security_risk_score, created_at, updated_at, audit_metadata,
+schema_version
+```
+
+Estados `approved`, `unsubscribed` e `failed` existem apenas como contrato nesta release e nao sao produzidos automaticamente.
+
 `ContextSnapshot`:
 
 ```text
 date, generated_at, emails_pending, emails_critical, followups,
 upcoming_commitments, important_people, recent_decisions, action_plans,
-work_items, top_priorities, summary, source_counts
+work_items, top_priorities, subscription_candidates, subscriptions_total,
+subscriptions_active, subscriptions_new, subscriptions_recommended_for_unsubscribe,
+subscriptions_waiting_approval, subscriptions_blocked_by_security,
+top_subscription_candidates, summary, source_counts
 ```
 
 `ContextSnapshot` e o contrato para futuros consumers de IA, Dashboard, WhatsApp e Planner.
@@ -227,6 +259,7 @@ runs/{run_id}
 accounts/{account_id}/emails/{message_id}
 accounts/{account_id}/classifications/{message_id}
 accounts/{account_id}/action_plans/{message_id}
+accounts/{account_id}/subscriptions/{subscription_id}
 ```
 
 A persistencia usa merge/upsert. Emails existentes atualizam `last_seen_at`; emails novos recebem `first_seen_at`. Isso evita duplicacao por `message_id`.
@@ -328,6 +361,23 @@ A saida usa:
 ```
 
 O comando falha se encontrar erros de configuracao obrigatoria.
+
+## Subscriptions
+
+Use `make subscriptions` para obter um resumo seguro:
+
+```bash
+make subscriptions
+```
+
+Ou diretamente:
+
+```bash
+python scripts/subscriptions.py --project-id agenda-pessoal-projeto --summary --dry-run
+python scripts/subscriptions.py --project-id agenda-pessoal-projeto --recommended --json
+```
+
+O comando nao executa unsubscribe, nao acessa URLs, nao envia e-mail e redige targets sensiveis na saida.
 
 ## Validacao operacional
 

@@ -95,6 +95,23 @@ Objetivo: criar camada unica de seguranca para todos os providers e consumers fu
 | 0.5.5 ContextSnapshot security fields | Media | Context Engine | expõe high risk, warning e security events | Concluido |
 | 0.5.6 Docs e ADR-010 | Media | implementacao | SECURITY, THREAT_MODEL, arquitetura e ADR criados | Concluido |
 
+## Release 0.7 - Communication Manager / Subscription Management
+
+Objetivo: fundacao segura para detectar, agregar, recomendar e planejar cancelamento de subscriptions sem executar unsubscribe.
+
+| Task | Prioridade | Dependencia | Criterio de aceite | Status |
+|---|---:|---|---|---|
+| 0.7.1 SubscriptionEntity | Alta | Security Foundation | entidade serializavel com status e auditoria | Concluido |
+| 0.7.2 RFC Parser | Alta | headers normalizados | interpreta List-Unsubscribe, one-click, mailto e valores malformados sem rede | Concluido |
+| 0.7.3 Detector evoluido | Alta | RFC Parser | prioriza sinais RFC e preserva evidencias | Concluido |
+| 0.7.4 Aggregator | Alta | Detector | consolida por List-ID, dominio+target ou remetente | Concluido |
+| 0.7.5 Repository | Alta | Firestore | in-memory e Firestore em accounts/{account_id}/subscriptions | Concluido |
+| 0.7.6 Recommendation Engine | Alta | SubscriptionEntity | recomendacao deterministica, bloqueio por risco e sem aprovacao implicita | Concluido |
+| 0.7.7 ActionPlan unsubscribe | Alta | Automation model | waiting_approval, dry_run, approval_required e execution_enabled=false | Concluido |
+| 0.7.8 Approval model | Media | ActionPlan | contrato sem executor | Concluido |
+| 0.7.9 Context/Double Check/CLI | Media | repositories | snapshot, auditoria read-only e make subscriptions | Concluido |
+| 0.7.10 Docs e ADR-012 | Media | implementacao | documentacao sincronizada | Concluido |
+
 ## Sprint 4 - Calendar Intelligence
 
 Objetivo: ler agenda e planejar eventos a partir de e-mails.

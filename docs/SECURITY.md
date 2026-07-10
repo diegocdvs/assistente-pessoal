@@ -16,6 +16,9 @@ Todo dado externo e nao confiavel por padrao. O sistema deve aplicar defesa em p
 - Nao realizar scraping para unsubscribe.
 - Validar headers, MIME, extensoes, URLs e dominios antes de qualquer acao.
 - Acoes externas permanecem em `DRY_RUN` ate aprovacao explicita.
+- Subscription Management nunca acessa URLs de unsubscribe, nunca envia `mailto`, nunca faz scraping e nunca abre navegador.
+- `ActionPlan` de unsubscribe deve exigir `approval_required=true` e `execution_enabled=false` ate existir executor aprovado.
+- Risco `high` ou `critical` impede execucao automatica e exige revisao manual.
 
 ## Threat Analyzer alvo
 

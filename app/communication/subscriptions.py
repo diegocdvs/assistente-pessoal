@@ -1,53 +1,89 @@
 from __future__ import annotations
 
-import re
 from email.utils import parseaddr
 from typing import Any
-from urllib.parse import urlparse
 
-from app.communication.models import SubscriptionCandidate
-
-_LIST_UNSUBSCRIBE_RE = re.compile(r"<([^>]+)>")
+from app.communication.models import SubscriptionCandidate, SubscriptionDetectionResult
+from app.communication.rfc_parser import (
+    extract_list_id,
+    normalize_headers,
+    parse_unsubscribe_methods,
+    preferred_unsubscribe_method,
+    source_subscription_headers,
+)
 
 
 class SubscriptionDetector:
-    """Detect subscription candidates without accessing external URLs."""
+    """Detect subscription signals without accessing external URLs or mailto targets."""
 
     def detect(self, emails: list[dict[str, Any]]) -> list[SubscriptionCandidate]:
         candidates: list[SubscriptionCandidate] = []
         for email in emails:
-            candidate = self._from_email(email)
+            result = self.detect_email(email)
+            if not result.detected:
+                continue
+            candidate = self._to_candidate(email, result)
             if candidate is not None:
                 candidates.append(candidate)
         return candidates
 
-    def _from_email(self, email: dict[str, Any]) -> SubscriptionCandidate | None:
-        headers = _normalized_headers(email.get("raw_headers"))
-        list_unsubscribe = headers.get("list-unsubscribe", "")
-        list_id = headers.get("list-id")
+    def detect_email(self, email: dict[str, Any]) -> SubscriptionDetectionResult:
+        headers = normalize_headers(email.get("raw_headers"))
+        methods = parse_unsubscribe_methods(headers)
+        list_id = extract_list_id(headers)
         precedence = headers.get("precedence", "").lower()
         auto_submitted = headers.get("auto-submitted", "").lower()
+        list_post = headers.get("list-post", "")
+        reasons: list[str] = []
+        confidence = 0.0
 
-        evidence: list[str] = []
-        if list_unsubscribe:
-            evidence.append("list-unsubscribe")
+        if headers.get("list-unsubscribe"):
+            reasons.append("header:list-unsubscribe")
+            confidence += 0.45
+        if headers.get("list-unsubscribe-post"):
+            reasons.append("header:list-unsubscribe-post")
+            confidence += 0.15
         if list_id:
-            evidence.append("list-id")
+            reasons.append("header:list-id")
+            confidence += 0.25
+        if list_post:
+            reasons.append("header:list-post")
+            confidence += 0.10
         if precedence in {"bulk", "list", "junk"}:
-            evidence.append(f"precedence:{precedence}")
+            reasons.append(f"header:precedence:{precedence}")
+            confidence += 0.10
         if auto_submitted and auto_submitted != "no":
-            evidence.append("auto-submitted")
+            reasons.append("header:auto-submitted")
+            confidence += 0.05
 
-        if not evidence:
-            return None
+        detected = bool(headers.get("list-unsubscribe") or list_id or list_post or precedence in {"bulk", "list"})
+        return SubscriptionDetectionResult(
+            detected=detected,
+            confidence=min(confidence, 1.0) if detected else 0.0,
+            reasons=reasons,
+            parsed_methods=methods,
+            list_id=list_id,
+            source_headers=source_subscription_headers(headers),
+            risk_recommendation="official_mechanism_detected_review_required" if methods else "no_official_mechanism",
+        )
 
-        unsubscribe_url, unsubscribe_email, method = _parse_unsubscribe(list_unsubscribe)
+    def _to_candidate(
+        self,
+        email: dict[str, Any],
+        result: SubscriptionDetectionResult,
+    ) -> SubscriptionCandidate | None:
         sender_name, sender_address = parseaddr(str(email.get("sender") or ""))
         sender = sender_address or str(email.get("sender") or "")
         domain = sender.split("@", 1)[1].lower() if "@" in sender else None
         email_id = str(email.get("id") or "")
         account_id = str(email.get("account_id") or "")
         provider = str(email.get("provider") or "unknown")
+        preferred = preferred_unsubscribe_method(result.parsed_methods)
+        http_method = next((method for method in result.parsed_methods if method.method in {"http", "https"}), None)
+        mailto_method = next((method for method in result.parsed_methods if method.method == "mailto"), None)
+
+        if not result.detected:
+            return None
 
         return SubscriptionCandidate(
             id=f"{account_id}:{provider}:{email_id}:subscription",
@@ -57,43 +93,16 @@ class SubscriptionDetector:
             sender=sender,
             sender_domain=domain,
             display_name=sender_name or None,
-            unsubscribe_supported=bool(method),
-            unsubscribe_method=method,
-            unsubscribe_url=unsubscribe_url,
-            unsubscribe_email=unsubscribe_email,
-            list_id=list_id,
-            evidence=evidence,
+            unsubscribe_supported=bool(preferred),
+            unsubscribe_method="http" if preferred and preferred.method in {"http", "https"} else (preferred.method if preferred else None),
+            unsubscribe_url=http_method.target if http_method else None,
+            unsubscribe_email=mailto_method.target if mailto_method else None,
+            list_id=result.list_id,
+            evidence=[reason.removeprefix("header:") for reason in result.reasons],
             audit_metadata={
-                "list_unsubscribe_post": headers.get("list-unsubscribe-post"),
-                "precedence": headers.get("precedence"),
+                "confidence": result.confidence,
+                "source_headers": result.source_headers,
+                "parsed_methods": [method.to_dict() for method in result.parsed_methods],
+                "risk_recommendation": result.risk_recommendation,
             },
         )
-
-
-def _normalized_headers(value: Any) -> dict[str, str]:
-    if not isinstance(value, dict):
-        return {}
-    return {str(key).strip().lower(): str(item).strip() for key, item in value.items()}
-
-
-def _parse_unsubscribe(value: str) -> tuple[str | None, str | None, str | None]:
-    if not value:
-        return None, None, None
-
-    entries = _LIST_UNSUBSCRIBE_RE.findall(value) or [part.strip() for part in value.split(",")]
-    safe_http_url: str | None = None
-    mailto_address: str | None = None
-
-    for entry in entries:
-        item = entry.strip()
-        parsed = urlparse(item)
-        if parsed.scheme in {"https", "http"} and parsed.netloc and safe_http_url is None:
-            safe_http_url = item
-        elif parsed.scheme == "mailto" and parsed.path and mailto_address is None:
-            mailto_address = parsed.path
-
-    if safe_http_url:
-        return safe_http_url, mailto_address, "http"
-    if mailto_address:
-        return None, mailto_address, "mailto"
-    return None, None, None
