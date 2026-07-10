@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 from email.utils import parseaddr
 from typing import Any
 
+from app.communication.models import SubscriptionCandidate
+from app.communication.subscriptions import SubscriptionDetector
 from app.context.followups import FollowUpDetector
 from app.context.models import ContextSnapshot, OperationalSummary
 from app.context.ranking import PriorityRanker
@@ -18,11 +20,13 @@ class ContextEngine:
         *,
         ranker: PriorityRanker | None = None,
         followup_detector: FollowUpDetector | None = None,
+        subscription_detector: SubscriptionDetector | None = None,
         window_days: int = 14,
     ) -> None:
         self.repository = repository
         self.ranker = ranker or PriorityRanker()
         self.followup_detector = followup_detector or FollowUpDetector()
+        self.subscription_detector = subscription_detector or SubscriptionDetector()
         self.window_days = window_days
 
     def build_snapshot(
@@ -43,6 +47,7 @@ class ContextEngine:
             data.action_plans,
             now=now,
         )
+        subscription_candidates = self.subscription_detector.detect(emails)
         followup_ids = {
             value
             for followup in followups
@@ -63,6 +68,7 @@ class ContextEngine:
             classifications=data.classifications,
             action_plans=action_plans,
             followup_count=len(followups),
+            subscription_candidates=subscription_candidates,
         )
 
         return ContextSnapshot(
@@ -72,6 +78,7 @@ class ContextEngine:
             emails_pending=_pending_emails(emails, data.classifications),
             emails_critical=_critical_emails(emails, data.classifications),
             followups=followups,
+            subscription_candidates=subscription_candidates,
             upcoming_commitments=_upcoming_commitments(emails, data.classifications),
             important_people=_important_people(emails),
             recent_decisions=_recent_decisions(data.reports),
@@ -102,6 +109,7 @@ def _build_summary(
     classifications: dict[str, dict[str, Any]],
     action_plans: list[dict[str, Any]],
     followup_count: int,
+    subscription_candidates: list[SubscriptionCandidate],
 ) -> OperationalSummary:
     by_category = Counter(
         classification.get("category")
@@ -118,11 +126,14 @@ def _build_summary(
         for plan in action_plans
         if plan.get("status", "planned") in {"planned", "waiting_approval", "failed"}
     ]
+    recommended = [candidate for candidate in subscription_candidates if candidate.unsubscribe_supported]
     return OperationalSummary(
         total_emails=len(emails),
         critical_emails=by_priority.get("critica", 0),
         followups=followup_count,
         pending_action_plans=len(pending_plans),
+        subscriptions_detected=len(subscription_candidates),
+        subscriptions_recommended_for_unsubscribe=len(recommended),
         top_category=_most_common_key(by_category),
         top_priority=_most_common_key(by_priority),
         total_by_category=dict(by_category),
