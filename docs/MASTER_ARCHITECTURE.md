@@ -70,6 +70,9 @@ ContextEngine
 ContextSnapshot
         |
         v
+Security Capability
+        |
+        v
 Future: Notification / WhatsApp / Dashboard
 ```
 
@@ -246,6 +249,31 @@ source_counts
 ```
 
 `ContextSnapshot` e o contrato que futuros consumers devem usar para IA, Dashboard, WhatsApp, resumos e Planner.
+
+### 5.6 SecurityAssessment
+
+Representa analise estatica de risco para conteudo externo.
+
+Campos principais:
+
+```text
+assessment_id
+provider
+source_id
+risk_score
+risk_level
+risk_reasons
+link_count
+attachment_count
+external_images
+suspicious_headers
+spoofing_signals
+authentication_signals
+created_at
+schema_version
+```
+
+`SecurityAssessment` e produzido por `ThreatAnalyzer` e nao executa acoes.
 
 ## 6. Conectores
 
@@ -581,6 +609,33 @@ Responsabilidades:
 
 Futuros consumers devem acessar contexto por `ContextEngine -> ContextSnapshot`, nao diretamente pelo Firestore.
 
+## 12.2 Security Capability
+
+`app/security` e a camada unica de seguranca do projeto.
+
+Responsabilidades:
+
+- analisar headers;
+- analisar links sem acessa-los;
+- analisar anexos sem abri-los;
+- avaliar dominios;
+- produzir `SecurityAssessment`;
+- gerar score e policy;
+- gerar eventos internos;
+- criar audit trail.
+
+Proibido implementar seguranca propria dentro de connectors, providers, Context Engine, IA futura ou modulos de automacao.
+
+Decisoes de policy sao apenas informativas nesta release:
+
+```text
+allow
+warn
+review
+block
+quarantine
+```
+
 ## 13. Segurança
 
 ### 13.1 Secrets
@@ -771,6 +826,12 @@ Motivo: padronizar entrada para IA e automações.
 Decisao: contexto deterministico e gerado antes de IA.
 
 Motivo: IA futura deve consumir `ContextSnapshot` consistente e auditavel, sem buscar dados diretamente em provedores ou Firestore.
+
+### ADR-010 - Security Capability
+
+Decisao: toda validacao de conteudo externo deve passar por `app/security`.
+
+Motivo: evitar regras duplicadas em connectors, providers, IA ou futuros modulos.
 
 ## 19. Critério de qualidade para novas sprints
 

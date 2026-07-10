@@ -70,6 +70,28 @@ docs/CONTEXT_ENGINE.md
 docs/adr/ADR-009-context-engine-separate-from-ai.md
 ```
 
+## Release 0.5 - Security Foundation
+
+A Release 0.5 cria uma Security Capability reutilizavel, sem adicionar funcionalidade de usuario:
+
+- `ThreatAnalyzer` produz `SecurityAssessment`;
+- analisadores de headers, links, anexos e dominios;
+- `RiskEngine` deterministico;
+- `SecurityPolicy` centralizada;
+- eventos internos e audit trail;
+- `ContextSnapshot` expoe `high_risk_items`, `warning_items` e `security_events`;
+- nenhum link e acessado e nenhum anexo e aberto.
+
+Docs:
+
+```text
+SECURITY.md
+THREAT_MODEL.md
+ENGINEERING_CONSTITUTION.md
+docs/SECURITY_ARCHITECTURE.md
+docs/adr/ADR-010-security-capability.md
+```
+
 ## Sprint 1.5
 
 A base foi consolidada em um pipeline desacoplado:
@@ -106,6 +128,7 @@ Ele nao instancia `GmailConnector` diretamente.
 - `app/core/automation.py`: gera `ActionPlan` em `dry_run`, sem executar acoes reais.
 - `app/core/report.py`: consolida totais e tempo de execucao.
 - `app/context/*`: gera `ContextSnapshot` a partir dos dados persistidos, sem IA.
+- `app/security/*`: analise estatica centralizada para conteudo externo.
 
 ## Modelos
 
@@ -139,6 +162,15 @@ work_items, top_priorities, summary, source_counts
 ```
 
 `ContextSnapshot` e o contrato para futuros consumers de IA, Dashboard, WhatsApp e Planner.
+
+Security:
+
+```text
+SecurityAssessment, LinkAssessment, AttachmentAssessment, HeaderAssessment,
+DomainAssessment, SecurityEvent, SecurityAuditRecord
+```
+
+A Security Capability nao executa acoes. Ela apenas avalia risco, policy e eventos.
 
 ## Configuracao central
 

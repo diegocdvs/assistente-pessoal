@@ -71,6 +71,9 @@ class ContextSnapshot:
     action_plans: list[dict[str, Any]]
     work_items: list[dict[str, Any]]
     top_priorities: list[RankedWorkItem]
+    high_risk_items: list[dict[str, Any]]
+    warning_items: list[dict[str, Any]]
+    security_events: list[dict[str, Any]]
     summary: OperationalSummary
     source_counts: dict[str, int]
 
@@ -91,6 +94,9 @@ class ContextSnapshot:
             action_plans=[],
             work_items=[],
             top_priorities=[],
+            high_risk_items=[],
+            warning_items=[],
+            security_events=[],
             summary=OperationalSummary(
                 total_emails=0,
                 critical_emails=0,
@@ -122,6 +128,9 @@ class ContextSnapshot:
             "action_plans": list(self.action_plans),
             "work_items": list(self.work_items),
             "top_priorities": [item.to_dict() for item in self.top_priorities],
+            "high_risk_items": list(self.high_risk_items),
+            "warning_items": list(self.warning_items),
+            "security_events": list(self.security_events),
             "summary": self.summary.to_dict(),
             "source_counts": dict(self.source_counts),
         }

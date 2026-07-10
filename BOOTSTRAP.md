@@ -31,6 +31,19 @@ print(snapshot.to_dict())
 
 Nao ha IA, LLM, embeddings ou novas integracoes nesta release.
 
+## Security Foundation
+
+A Security Capability nao exige credenciais novas:
+
+```python
+from app.security import ThreatAnalyzer
+
+assessment = ThreatAnalyzer().analyze(email_payload)
+print(assessment.to_dict())
+```
+
+Ela nunca acessa links, nunca abre anexos e nunca executa acoes automaticamente.
+
 ## Gmail
 
 Gmail continua usando Secret Manager com:

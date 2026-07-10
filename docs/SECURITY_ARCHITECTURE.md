@@ -1,0 +1,189 @@
+# Security Architecture - Release 0.5
+
+Status: fundacao estrutural  
+Escopo: analise estatica e reutilizavel para todos os providers futuros.
+
+## Objetivo
+
+Criar uma Security Capability unica em `app/security`.
+
+Nenhum connector, provider, Context Engine, IA futura ou modulo de automacao deve implementar seguranca propria.
+
+## Fluxo
+
+```text
+EmailEntity / payload persistido
+        |
+        v
+ThreatAnalyzer
+        |
+        +--> HeaderAnalyzer
+        +--> LinkAnalyzer
+        +--> AttachmentAnalyzer
+        +--> DomainAnalyzer
+        |
+        v
+RiskEngine
+        |
+        v
+SecurityPolicy
+        |
+        v
+SecurityAssessment + SecurityEvent + SecurityAuditRecord
+```
+
+## ThreatAnalyzer
+
+`ThreatAnalyzer` produz `SecurityAssessment`.
+
+Ele:
+
+- nao modifica dados;
+- nao acessa links;
+- nao abre anexos;
+- nao chama APIs externas;
+- nao executa decisoes.
+
+## SecurityAssessment
+
+Campos principais:
+
+```text
+assessment_id
+provider
+source_id
+risk_score
+risk_level
+risk_reasons
+link_count
+attachment_count
+external_images
+suspicious_headers
+spoofing_signals
+authentication_signals
+created_at
+schema_version
+policy_decision
+```
+
+## Header Analyzer
+
+Detecta:
+
+- `List-Unsubscribe`;
+- `List-ID`;
+- `Auto-Submitted`;
+- `Precedence`;
+- `Reply-To` diferente;
+- `Return-Path`;
+- SPF, DKIM e DMARC em `Authentication-Results`;
+- headers suspeitos.
+
+## Link Analyzer
+
+Analise estatica. Nunca acessa URLs.
+
+Detecta:
+
+- protocolo;
+- dominio;
+- parametro de redirect;
+- IP literal;
+- URL encurtada;
+- unicode;
+- punycode;
+- porta incomum;
+- quantidade.
+
+## Attachment Analyzer
+
+Analise estatica. Nunca abre anexos.
+
+Detecta:
+
+- nome;
+- extensao;
+- MIME;
+- tamanho;
+- dupla extensao;
+- tipos executaveis.
+
+## Domain Analyzer
+
+Detecta:
+
+- dominio vazio;
+- IP literal;
+- unicode;
+- punycode;
+- TLD incomum;
+- lookalike simples de dominios protegidos.
+
+## Risk Engine
+
+Algoritmo deterministico.
+
+Exemplos de pontuacao:
+
+- link suspeito aumenta score;
+- anexo executavel aumenta score;
+- dupla extensao aumenta score;
+- SPF/DKIM/DMARC invalido aumenta score;
+- imagens externas aumentam score limitado.
+
+Niveis:
+
+```text
+low
+medium
+high
+critical
+```
+
+## Policy
+
+Decisoes:
+
+```text
+allow
+warn
+review
+block
+quarantine
+```
+
+Na Release 0.5, nenhuma decisao e executada automaticamente.
+
+## Eventos
+
+Eventos internos:
+
+```text
+HighRiskDetected
+SuspiciousAttachment
+SpoofingDetected
+SubscriptionDetected
+LinkWarning
+```
+
+Esses eventos serao consumidos futuramente por Double Check, Dashboard, IA e automacoes com aprovacao.
+
+## Context Engine
+
+`ContextSnapshot` passa a expor:
+
+```text
+high_risk_items
+warning_items
+security_events
+```
+
+Esses campos sao derivados de `ThreatAnalyzer` sem executar acoes.
+
+## Double Check
+
+Toda `SecurityAssessment` e serializavel e pode ser revalidada futuramente. A Release 0.5 nao implementa scheduler nem revalidacao automatica.
+
+## Subscription Manager
+
+`List-Unsubscribe` e analisado como sinal de seguranca antes de qualquer unsubscribe futuro. A Release 0.5 nao executa unsubscribe.
