@@ -17,6 +17,20 @@ python -m pytest
 python -m compileall app scripts
 ```
 
+## Context Engine
+
+O Context Engine nao exige credenciais novas. Ele usa apenas dados ja persistidos:
+
+```python
+from app.context import ContextEngine, FirestoreContextRepository
+
+repository = FirestoreContextRepository(project_id="agenda-pessoal-projeto")
+snapshot = ContextEngine(repository).build_snapshot(account_ids=["pessoal_google"])
+print(snapshot.to_dict())
+```
+
+Nao ha IA, LLM, embeddings ou novas integracoes nesta release.
+
 ## Gmail
 
 Gmail continua usando Secret Manager com:

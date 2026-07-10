@@ -9,6 +9,8 @@ Connector
   -> Persistence
   -> Automation
   -> Report
+  -> ContextEngine
+  -> ContextSnapshot
 ```
 
 A Sprint 1.5 separa integracoes externas, dominio, classificacao, persistencia, planejamento de automacao e relatorio. A meta e preparar a base para Calendar, Outlook, WhatsApp e IA sem acoplamento ao Gmail.
@@ -123,6 +125,19 @@ type, reason, dry_run, status, payload
 - erros;
 - acoes planejadas;
 - duracao da execucao.
+
+## Context Engine
+
+`app/context` gera `ContextSnapshot` a partir de dados ja persistidos. Ele nao chama APIs externas e nao usa IA.
+
+Responsabilidades:
+
+- resumo operacional;
+- ranking de prioridades;
+- deteccao de follow-ups;
+- consolidacao de WorkItems, action plans, classificacoes e reports.
+
+Futuros consumers devem usar `ContextEngine -> ContextSnapshot` em vez de consultar Firestore diretamente.
 
 ## Seguranca
 

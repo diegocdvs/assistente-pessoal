@@ -52,6 +52,24 @@ docs/adr/ADR-008-microsoft-graph-oauth.md
 BOOTSTRAP.md
 ```
 
+## Release 0.4 - Context Engine
+
+A Release 0.4 adiciona o primeiro mecanismo de contexto sem IA:
+
+- `ContextSnapshot` representa o estado operacional atual;
+- `ContextEngine` consolida emails, classificacoes, action plans, reports e WorkItems;
+- `PriorityRanker` cria ranking deterministico de prioridades;
+- `FollowUpDetector` sugere acompanhamentos sem executar acoes;
+- `FirestoreContextRepository` le apenas dados ja persistidos;
+- nenhum provider, OAuth, conector ou infraestrutura foi alterado.
+
+Docs:
+
+```text
+docs/CONTEXT_ENGINE.md
+docs/adr/ADR-009-context-engine-separate-from-ai.md
+```
+
 ## Sprint 1.5
 
 A base foi consolidada em um pipeline desacoplado:
@@ -87,6 +105,7 @@ Ele nao instancia `GmailConnector` diretamente.
 - `app/storage/persistence.py`: persistencia Firestore com upsert/deduplicacao.
 - `app/core/automation.py`: gera `ActionPlan` em `dry_run`, sem executar acoes reais.
 - `app/core/report.py`: consolida totais e tempo de execucao.
+- `app/context/*`: gera `ContextSnapshot` a partir dos dados persistidos, sem IA.
 
 ## Modelos
 
@@ -110,6 +129,16 @@ type, reason, dry_run, status, payload, id, source, created_at, updated_at, audi
 ```
 
 `ActionPlan` continua sendo apenas planejado. Nao ha executor real nesta release.
+
+`ContextSnapshot`:
+
+```text
+date, generated_at, emails_pending, emails_critical, followups,
+upcoming_commitments, important_people, recent_decisions, action_plans,
+work_items, top_priorities, summary, source_counts
+```
+
+`ContextSnapshot` e o contrato para futuros consumers de IA, Dashboard, WhatsApp e Planner.
 
 ## Configuracao central
 

@@ -70,6 +70,18 @@ Objetivo: entregar valor diario por notificacao.
 | 3.5 Scheduler diario | Alta | Cloud Scheduler | roda diariamente | Pendente |
 | 3.6 smoke de notificacao | Alta | 3.3 | logs mostram payload sem envio real em DRY_RUN | Pendente |
 
+## Release 0.4 - Context Engine
+
+Objetivo: criar contexto operacional deterministico antes de IA, Dashboard e WhatsApp.
+
+| Task | Prioridade | Dependencia | Criterio de aceite | Status |
+|---|---:|---|---|---|
+| 0.4.1 ContextSnapshot | Alta | modelos de dominio | snapshot serializavel com resumo, prioridades e followups | Concluido |
+| 0.4.2 ContextEngine | Alta | Firestore/read models | monta snapshot sem chamar APIs externas | Concluido |
+| 0.4.3 Priority Ranking | Alta | classificacoes/action plans | ordena WorkItems por prioridade, categoria, idade, plano e follow-up | Concluido |
+| 0.4.4 Follow-up Detector | Alta | emails/workitems | detecta enviados sem resposta, pendencias antigas e itens esquecidos | Concluido |
+| 0.4.5 Documentacao e ADR | Media | implementacao | `docs/CONTEXT_ENGINE.md` e ADR-009 criados | Concluido |
+
 ## Sprint 4 - Calendar Intelligence
 
 Objetivo: ler agenda e planejar eventos a partir de e-mails.

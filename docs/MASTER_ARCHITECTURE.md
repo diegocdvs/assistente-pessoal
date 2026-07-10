@@ -64,6 +64,12 @@ AutomationPlanner
 Report
         |
         v
+ContextEngine
+        |
+        v
+ContextSnapshot
+        |
+        v
 Future: Notification / WhatsApp / Dashboard
 ```
 
@@ -216,6 +222,30 @@ failed
 Enquanto `DRY_RUN=true`, nenhum plano deve ser executado.
 
 Na Release 0.2, `ActionPlan` segue sem executor real. Os novos campos existem apenas para auditoria, rastreabilidade e compatibilidade futura.
+
+### 5.5 ContextSnapshot
+
+Representa o estado operacional atual do usuario.
+
+Campos principais:
+
+```text
+date
+generated_at
+emails_pending
+emails_critical
+followups
+upcoming_commitments
+important_people
+recent_decisions
+action_plans
+work_items
+top_priorities
+summary
+source_counts
+```
+
+`ContextSnapshot` e o contrato que futuros consumers devem usar para IA, Dashboard, WhatsApp, resumos e Planner.
 
 ## 6. Conectores
 
@@ -524,6 +554,33 @@ Relatórios futuros:
 - alertas imediatos;
 - dashboard.
 
+## 12.1 Context Engine
+
+O Context Engine consolida dados persistidos em um `ContextSnapshot`.
+
+Ele usa apenas:
+
+```text
+runs
+emails
+classifications
+action_plans
+WorkItems conceituais
+```
+
+Ele nao chama APIs externas, nao usa IA, nao executa automacoes e nao altera providers.
+
+Responsabilidades:
+
+- resumo operacional;
+- ranking deterministico de prioridades;
+- deteccao de follow-ups;
+- lista de pessoas importantes;
+- compromissos potenciais ja detectados pelo classificador;
+- decisoes recentes derivadas de action plans planejados.
+
+Futuros consumers devem acessar contexto por `ContextEngine -> ContextSnapshot`, nao diretamente pelo Firestore.
+
 ## 13. Segurança
 
 ### 13.1 Secrets
@@ -708,6 +765,12 @@ Motivo: evitar mutações acidentais em e-mail, agenda e mensagens.
 Decisão: todos os itens processáveis devem convergir para WorkItem.
 
 Motivo: padronizar entrada para IA e automações.
+
+### ADR-009 - Context Engine separado da IA
+
+Decisao: contexto deterministico e gerado antes de IA.
+
+Motivo: IA futura deve consumir `ContextSnapshot` consistente e auditavel, sem buscar dados diretamente em provedores ou Firestore.
 
 ## 19. Critério de qualidade para novas sprints
 
