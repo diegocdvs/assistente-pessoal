@@ -107,6 +107,26 @@ A Release 0.7 cria a fundacao segura para newsletters, listas e comunicacoes rec
 
 Esta release nao acessa links, nao envia `mailto`, nao faz scraping, nao abre navegador e nao altera Gmail ou Outlook.
 
+## Release 0.8 - Google Calendar Read-Only & Daily Agenda
+
+A Release 0.8 adiciona leitura read-only de Google Calendar:
+
+- `CalendarEvent` normaliza compromissos sem acoplar dominio ao Google;
+- `GoogleCalendarConnector` lista calendarios e eventos com escopos read-only;
+- eventos sao persistidos em `accounts/{account_id}/calendar_events/{event_id}`;
+- `ContextSnapshot` expoe eventos de hoje, amanha, proximo evento, conflitos e janelas livres;
+- `DailyAgendaBuilder` gera agenda diaria deterministica, sem IA;
+- `scripts/calendar.py` e `make calendar` exibem agenda em modo seguro.
+
+Escopos OAuth read-only:
+
+```text
+https://www.googleapis.com/auth/calendar.events.readonly
+https://www.googleapis.com/auth/calendar.calendarlist.readonly
+```
+
+Calendar permanece desabilitado por padrao com `CALENDAR_ENABLED=false`. Mudanca de escopo pode exigir nova autorizacao e novo refresh token.
+
 ## Sprint 1.5
 
 A base foi consolidada em um pipeline desacoplado:
@@ -260,6 +280,8 @@ accounts/{account_id}/emails/{message_id}
 accounts/{account_id}/classifications/{message_id}
 accounts/{account_id}/action_plans/{message_id}
 accounts/{account_id}/subscriptions/{subscription_id}
+accounts/{account_id}/calendar_events/{event_id}
+daily_agendas/{date}
 ```
 
 A persistencia usa merge/upsert. Emails existentes atualizam `last_seen_at`; emails novos recebem `first_seen_at`. Isso evita duplicacao por `message_id`.
@@ -378,6 +400,16 @@ python scripts/subscriptions.py --project-id agenda-pessoal-projeto --recommende
 ```
 
 O comando nao executa unsubscribe, nao acessa URLs, nao envia e-mail e redige targets sensiveis na saida.
+
+## Calendar
+
+Use `make calendar` para agenda diaria read-only:
+
+```bash
+make calendar
+```
+
+O comando nao cria, atualiza, exclui ou responde eventos. Meeting URLs e descricoes completas nao sao exibidas por padrao.
 
 ## Validacao operacional
 
