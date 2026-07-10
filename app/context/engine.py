@@ -11,6 +11,7 @@ from app.context.followups import FollowUpDetector
 from app.context.models import ContextSnapshot, OperationalSummary
 from app.context.ranking import PriorityRanker
 from app.context.store import ContextRepository
+from app.security import RiskLevel, SecurityDecision, ThreatAnalyzer
 
 
 class ContextEngine:
@@ -21,12 +22,14 @@ class ContextEngine:
         ranker: PriorityRanker | None = None,
         followup_detector: FollowUpDetector | None = None,
         subscription_detector: SubscriptionDetector | None = None,
+        threat_analyzer: ThreatAnalyzer | None = None,
         window_days: int = 14,
     ) -> None:
         self.repository = repository
         self.ranker = ranker or PriorityRanker()
         self.followup_detector = followup_detector or FollowUpDetector()
         self.subscription_detector = subscription_detector or SubscriptionDetector()
+        self.threat_analyzer = threat_analyzer or ThreatAnalyzer()
         self.window_days = window_days
 
     def build_snapshot(
@@ -48,6 +51,7 @@ class ContextEngine:
             now=now,
         )
         subscription_candidates = self.subscription_detector.detect(emails)
+        security_assessments = [self.threat_analyzer.analyze(email) for email in emails]
         followup_ids = {
             value
             for followup in followups
@@ -85,6 +89,21 @@ class ContextEngine:
             action_plans=action_plans,
             work_items=work_items,
             top_priorities=top_priorities,
+            high_risk_items=[
+                assessment.to_dict()
+                for assessment in security_assessments
+                if assessment.risk_level in {RiskLevel.HIGH, RiskLevel.CRITICAL}
+            ],
+            warning_items=[
+                assessment.to_dict()
+                for assessment in security_assessments
+                if assessment.policy_decision in {SecurityDecision.WARN, SecurityDecision.REVIEW}
+            ],
+            security_events=[
+                event.to_dict()
+                for assessment in security_assessments
+                for event in assessment.events
+            ],
             summary=summary,
             source_counts=dict(Counter(item.get("source", "unknown") for item in work_items)),
         )

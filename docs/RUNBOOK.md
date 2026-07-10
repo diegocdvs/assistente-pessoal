@@ -220,6 +220,34 @@ PY
 
 Se nao houver dados no Firestore, o snapshot sera vazio ou com contagens zeradas. Isso nao indica falha do engine.
 
+## 10.5 Release 0.5 - Security Foundation
+
+A Security Capability e validada localmente:
+
+```bash
+python -m pytest tests/test_security_foundation.py
+python -m compileall app scripts
+```
+
+Uso manual:
+
+```bash
+python - <<'PY'
+from app.security import ThreatAnalyzer
+
+email = {
+    "id": "sample",
+    "provider": "manual",
+    "snippet": "https://bit.ly/a?url=https://example.test",
+    "raw_headers": {},
+    "metadata": {},
+}
+print(ThreatAnalyzer().analyze(email).to_dict())
+PY
+```
+
+O analyzer nao acessa links, nao abre anexos e nao executa policies.
+
 ## 11. Erros conhecidos
 
 ### `invalid_scope`

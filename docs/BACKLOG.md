@@ -82,6 +82,19 @@ Objetivo: criar contexto operacional deterministico antes de IA, Dashboard e Wha
 | 0.4.4 Follow-up Detector | Alta | emails/workitems | detecta enviados sem resposta, pendencias antigas e itens esquecidos | Concluido |
 | 0.4.5 Documentacao e ADR | Media | implementacao | `docs/CONTEXT_ENGINE.md` e ADR-009 criados | Concluido |
 
+## Release 0.5 - Security Foundation
+
+Objetivo: criar camada unica de seguranca para todos os providers e consumers futuros.
+
+| Task | Prioridade | Dependencia | Criterio de aceite | Status |
+|---|---:|---|---|---|
+| 0.5.1 ThreatAnalyzer | Alta | modelos de dominio | produz `SecurityAssessment` sem modificar dados | Concluido |
+| 0.5.2 Header/Link/Attachment/Domain analyzers | Alta | ThreatAnalyzer | analise estatica sem acessar links/anexos | Concluido |
+| 0.5.3 Risk Engine e Policy | Alta | assessments | score deterministico e decisao allow/warn/review/quarantine | Concluido |
+| 0.5.4 Security Events e Audit Trail | Alta | Risk Engine | eventos internos e `SecurityAuditRecord` serializaveis | Concluido |
+| 0.5.5 ContextSnapshot security fields | Media | Context Engine | expõe high risk, warning e security events | Concluido |
+| 0.5.6 Docs e ADR-010 | Media | implementacao | SECURITY, THREAT_MODEL, arquitetura e ADR criados | Concluido |
+
 ## Sprint 4 - Calendar Intelligence
 
 Objetivo: ler agenda e planejar eventos a partir de e-mails.

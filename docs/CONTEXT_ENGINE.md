@@ -58,6 +58,9 @@ work_items
 top_priorities
 summary
 source_counts
+high_risk_items
+warning_items
+security_events
 ```
 
 `summary` contem:
@@ -155,3 +158,15 @@ Nao implementado:
 ## Futuro
 
 A IA futura deve receber `ContextSnapshot` como entrada. Ela nao deve buscar dados diretamente no Firestore, Gmail, Outlook, Calendar ou WhatsApp.
+
+## Security Foundation
+
+A partir da Release 0.5, o snapshot tambem expoe assessments e eventos de seguranca:
+
+```text
+high_risk_items
+warning_items
+security_events
+```
+
+Esses campos sao derivados de `ThreatAnalyzer` e nao executam bloqueio, quarentena, unsubscribe ou qualquer acao automatica.

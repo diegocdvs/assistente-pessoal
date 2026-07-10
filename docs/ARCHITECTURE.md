@@ -11,6 +11,7 @@ Connector
   -> Report
   -> ContextEngine
   -> ContextSnapshot
+  -> Security Capability
 ```
 
 A Sprint 1.5 separa integracoes externas, dominio, classificacao, persistencia, planejamento de automacao e relatorio. A meta e preparar a base para Calendar, Outlook, WhatsApp e IA sem acoplamento ao Gmail.
@@ -138,6 +139,21 @@ Responsabilidades:
 - consolidacao de WorkItems, action plans, classificacoes e reports.
 
 Futuros consumers devem usar `ContextEngine -> ContextSnapshot` em vez de consultar Firestore diretamente.
+
+## Security Capability
+
+`app/security` centraliza analise estatica para conteudo externo:
+
+- headers;
+- links;
+- anexos;
+- dominios;
+- risco;
+- policy;
+- eventos;
+- auditoria.
+
+Nenhum link e acessado. Nenhum anexo e aberto. Nenhuma policy e executada automaticamente.
 
 ## Seguranca
 
