@@ -139,3 +139,34 @@ python scripts/daily_brief.py --project-id agenda-pessoal-projeto --json --no-pe
 ```
 
 O Daily Brief consome `ContextSnapshot`, nao chama providers e nao executa acoes.
+
+## Daily Brief Delivery
+
+Daily Brief Delivery permanece desligado por padrao:
+
+```bash
+DAILY_BRIEF_DELIVERY_ENABLED=false
+DAILY_BRIEF_DELIVERY_MODE=disabled
+DAILY_BRIEF_DELIVERY_ALLOW_SEND=false
+```
+
+Validacao segura:
+
+```bash
+python scripts/daily_brief_delivery.py --project-id agenda-pessoal-projeto --use-last-brief --json
+python scripts/daily_brief_delivery.py --project-id agenda-pessoal-projeto --mode draft --dry-run --use-last-brief --json
+```
+
+Para preparar OAuth de rascunho ou envio:
+
+```bash
+python scripts/google_oauth_local.py --client-secret-file client_secret.json --include-gmail-draft
+python scripts/google_oauth_local.py --client-secret-file client_secret.json --include-gmail-send
+```
+
+Detalhes:
+
+```text
+docs/DAILY_BRIEF_DELIVERY.md
+docs/setup/GMAIL_DELIVERY_SETUP.md
+```

@@ -139,6 +139,25 @@ A Release 0.9 adiciona o primeiro brief diario consolidado:
 
 O Daily Brief nao usa IA, nao envia mensagens e nao executa ActionPlans.
 
+## Release 0.10 - Daily Brief Delivery por Email
+
+A Release 0.10 adiciona entrega opcional do Daily Brief por Gmail, desligada por padrao:
+
+- `DailyBriefDeliveryPolicy` decide `ALLOW_DRAFT`, `ALLOW_SEND`, `BLOCK` ou `REVIEW`;
+- `DailyBriefEmailRenderer` gera assunto, corpo texto e corpo HTML seguro;
+- `GmailDailyBriefDeliveryClient` e separado do `GmailConnector` e nao le inbox;
+- `DailyBriefDeliveryService` aplica idempotencia antes de criar rascunho ou enviar;
+- auditoria e persistida em `daily_brief_deliveries/{delivery_id}`;
+- `send` exige `DAILY_BRIEF_DELIVERY_ALLOW_SEND=true`.
+
+Docs:
+
+```text
+docs/DAILY_BRIEF_DELIVERY.md
+docs/setup/GMAIL_DELIVERY_SETUP.md
+docs/adr/ADR-015-daily-brief-email-delivery.md
+```
+
 ## Sprint 1.5
 
 A base foi consolidada em um pipeline desacoplado:
@@ -175,6 +194,7 @@ Ele nao instancia `GmailConnector` diretamente.
 - `app/core/automation.py`: gera `ActionPlan` em `dry_run`, sem executar acoes reais.
 - `app/core/report.py`: consolida totais e tempo de execucao.
 - `app/context/*`: gera `ContextSnapshot` a partir dos dados persistidos, sem IA.
+- `app/daily_brief_delivery/*`: entrega opcional do Daily Brief por Gmail com policy, idempotencia e auditoria.
 - `app/security/*`: analise estatica centralizada para conteudo externo.
 
 ## Modelos
@@ -227,6 +247,16 @@ top_subscription_candidates, summary, source_counts
 
 `ContextSnapshot` e o contrato para futuros consumers de IA, Dashboard, WhatsApp e Planner.
 
+`DailyBriefDeliveryRecord`:
+
+```text
+delivery_id, brief_id, account_id, recipient, mode, policy_decision,
+policy_reason, status, idempotency_key, gmail_draft_id,
+gmail_message_id, error, created_at, updated_at, metadata, schema_version
+```
+
+O corpo do e-mail do Daily Brief nao e persistido.
+
 Security:
 
 ```text
@@ -258,6 +288,29 @@ AUTO_EXECUTION_ENABLED=false
 ```
 
 `OUTLOOK_ENABLED=false` continua sendo o comportamento esperado em producao. Com `OUTLOOK_ENABLED=true`, Outlook usa Microsoft Graph em modo somente leitura.
+
+Daily Brief Delivery permanece desligado por padrao:
+
+```text
+DAILY_BRIEF_DELIVERY_ENABLED=false
+DAILY_BRIEF_DELIVERY_MODE=disabled
+DAILY_BRIEF_DELIVERY_ALLOW_SEND=false
+```
+
+Para criar rascunho, configure allowlist:
+
+```text
+DAILY_BRIEF_DELIVERY_ENABLED=true
+DAILY_BRIEF_DELIVERY_MODE=draft
+DAILY_BRIEF_DELIVERY_RECIPIENTS=destinatario@example.com
+```
+
+Para envio real, alem da allowlist:
+
+```text
+DAILY_BRIEF_DELIVERY_MODE=send
+DAILY_BRIEF_DELIVERY_ALLOW_SEND=true
+```
 
 ## Classificacao
 
@@ -294,6 +347,8 @@ accounts/{account_id}/action_plans/{message_id}
 accounts/{account_id}/subscriptions/{subscription_id}
 accounts/{account_id}/calendar_events/{event_id}
 daily_agendas/{date}
+daily_briefs/{date}:{scope}
+daily_brief_deliveries/{delivery_id}
 ```
 
 A persistencia usa merge/upsert. Emails existentes atualizam `last_seen_at`; emails novos recebem `first_seen_at`. Isso evita duplicacao por `message_id`.
@@ -431,6 +486,22 @@ make daily-brief-json
 ```
 
 O brief usa dados persistidos via `ContextSnapshot` e nao acessa Gmail, Outlook ou Calendar diretamente.
+
+## Daily Brief Delivery
+
+```bash
+make daily-brief-draft
+make daily-brief-deliver
+```
+
+Comandos diretos:
+
+```bash
+python scripts/daily_brief_delivery.py --project-id agenda-pessoal-projeto --mode draft --use-last-brief
+python scripts/daily_brief_delivery.py --project-id agenda-pessoal-projeto --use-last-brief --json
+```
+
+`daily-brief-draft` cria apenas rascunho quando a policy permitir. `daily-brief-deliver` respeita `DAILY_BRIEF_DELIVERY_MODE`; com defaults seguros, registra `skipped` e nao chama Gmail.
 
 ## Validacao operacional
 
