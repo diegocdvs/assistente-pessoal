@@ -66,6 +66,15 @@ Provider
 - status incompativel com riscos;
 - brief de data incorreta;
 - ultimo brief inconsistente com ultimo `ContextSnapshot`.
+- execucao agendada sem Daily Brief correspondente;
+- entrega agendada concluida sem audit de delivery;
+- duplicidade de idempotency key agendada;
+- duas entregas confirmadas para mesma data/scope/recipient/mode;
+- estado running antigo;
+- estado `delivery_uncertain` sem revisao;
+- Scheduler ativo com feature flag desligada;
+- modo send sem allowlist;
+- schema_version ausente em ScheduledDailyBriefRun.
 
 ## Modelos previstos
 

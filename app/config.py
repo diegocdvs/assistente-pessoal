@@ -6,6 +6,7 @@ from pathlib import Path
 
 from app.calendar.config import CalendarSettings
 from app.daily_brief_delivery.policy import DeliveryPolicySettings
+from app.scheduled_daily_brief.service import ScheduledDailyBriefSettings
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -76,6 +77,7 @@ class Settings:
     calendar: CalendarSettings = field(default_factory=CalendarSettings)
     daily_brief: DailyBriefSettings = field(default_factory=DailyBriefSettings)
     daily_brief_delivery: DailyBriefDeliverySettings = field(default_factory=DailyBriefDeliverySettings)
+    scheduled_daily_brief: ScheduledDailyBriefSettings = field(default_factory=ScheduledDailyBriefSettings)
 
 
 def load_settings() -> Settings:
@@ -138,5 +140,20 @@ def load_settings() -> Settings:
             sender_account_id=os.environ.get("DAILY_BRIEF_DELIVERY_SENDER_ACCOUNT_ID", "pessoal_google"),
             secret_prefix=os.environ.get("DAILY_BRIEF_DELIVERY_SECRET_PREFIX", "google-pessoal"),
             force=_env_bool("DAILY_BRIEF_DELIVERY_FORCE", False),
+        ),
+        scheduled_daily_brief=ScheduledDailyBriefSettings(
+            enabled=_env_bool("DAILY_BRIEF_SCHEDULE_ENABLED", False),
+            schedule_time=os.environ.get("DAILY_BRIEF_SCHEDULE_TIME", "07:30"),
+            timezone=os.environ.get("DAILY_BRIEF_SCHEDULE_TIMEZONE", "America/Sao_Paulo"),
+            mode=os.environ.get("DAILY_BRIEF_SCHEDULE_MODE", "draft"),
+            account_scope=os.environ.get("DAILY_BRIEF_SCHEDULE_ACCOUNT_SCOPE", "all"),
+            recipients=tuple(
+                item.strip()
+                for item in os.environ.get("DAILY_BRIEF_SCHEDULE_RECIPIENTS", "").split(",")
+                if item.strip()
+            ),
+            max_attempts=int(os.environ.get("DAILY_BRIEF_SCHEDULE_MAX_ATTEMPTS", "3")),
+            retry_delay_seconds=int(os.environ.get("DAILY_BRIEF_SCHEDULE_RETRY_DELAY_SECONDS", "60")),
+            lookback_hours=int(os.environ.get("DAILY_BRIEF_SCHEDULE_LOOKBACK_HOURS", "24")),
         ),
     )

@@ -40,6 +40,8 @@ Todo cruzamento deve validar entrada, limitar privilegios e registrar auditoria.
 11. Dependencias comprometidas.
 12. Logs contendo dados sensiveis.
 13. Falha silenciosa na leitura ou persistencia.
+14. Retry de job agendado gerando entrega duplicada.
+15. Perda de resposta apos possivel envio criando estado incerto.
 
 ## Mitigacoes atuais
 
@@ -64,6 +66,7 @@ Todo cruzamento deve validar entrada, limitar privilegios e registrar auditoria.
 - Subscription Management separado de qualquer executor, com aprovacao explicita e targets redigidos.
 - Calendar read-only com analise estatica de metadados, sem acessar meeting URLs ou responder convites.
 - Daily Brief com renderizacao limitada, sem corpo completo, sem URL completa e sem execucao de acoes.
+- Scheduled Daily Brief com acquire idempotente antes da entrega e `delivery_uncertain` sem retry automatico.
 
 ## Regra de atualizacao
 

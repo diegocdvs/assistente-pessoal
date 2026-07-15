@@ -126,6 +126,17 @@ make daily-brief-deliver
 
 `daily-brief-draft` forca modo `draft`. `daily-brief-deliver` respeita as variaveis de ambiente.
 
+## Agendamento
+
+O agendamento diario nao fica nesta camada. A Release 0.11 adiciona `app/scheduled_daily_brief`, que chama a delivery somente depois de adquirir uma idempotency key propria da rotina diaria.
+
+Consulte:
+
+```text
+docs/SCHEDULED_DAILY_BRIEF.md
+docs/setup/SCHEDULED_DAILY_BRIEF_GCP_SETUP.md
+```
+
 ## Garantias
 
 - nao altera GmailConnector;

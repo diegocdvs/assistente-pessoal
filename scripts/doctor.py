@@ -22,6 +22,7 @@ REQUIRED_SECRETS = (
 )
 EXPECTED_PROJECT_ID = "agenda-pessoal-projeto"
 EXPECTED_REGION = "southamerica-east1"
+EXPECTED_SCHEDULER_NAME = "assistente-pessoal-daily-brief"
 
 
 @dataclass
@@ -72,6 +73,10 @@ def main() -> int:
 
     print("\n== Cloud Run ==")
     check_job(summary, args.project_id, args.region, args.job_name)
+
+    print("\n== Scheduled Daily Brief ==")
+    check_scheduled_daily_brief_config(summary)
+    check_scheduler(summary, args.project_id, args.region, EXPECTED_SCHEDULER_NAME)
 
     print("\n== Resumo ==")
     print(f"[OK] {summary.ok} checks")
@@ -204,8 +209,92 @@ def check_job(summary: CheckSummary, project_id: str, region: str, job_name: str
         record(summary, "ERROR", f"Cloud Run Job ausente ou inacessivel: {job_name}")
 
 
+def check_scheduled_daily_brief_config(summary: CheckSummary) -> None:
+    enabled = _env_bool("DAILY_BRIEF_SCHEDULE_ENABLED", False)
+    mode = os.environ.get("DAILY_BRIEF_SCHEDULE_MODE", "draft")
+    timezone_name = os.environ.get("DAILY_BRIEF_SCHEDULE_TIMEZONE", "America/Sao_Paulo")
+    schedule_time = os.environ.get("DAILY_BRIEF_SCHEDULE_TIME", "07:30")
+    recipients = [item.strip() for item in os.environ.get("DAILY_BRIEF_SCHEDULE_RECIPIENTS", "").split(",") if item.strip()]
+    delivery_allow_send = _env_bool("DAILY_BRIEF_DELIVERY_ALLOW_SEND", False)
+    delivery_recipients = [item.strip() for item in os.environ.get("DAILY_BRIEF_DELIVERY_RECIPIENTS", "").split(",") if item.strip()]
+
+    record(summary, "OK" if not enabled else "WARN", f"Daily Brief Schedule enabled={enabled}")
+    if mode in {"disabled", "draft", "send"}:
+        record(summary, "OK", f"Modo agendado: {mode}")
+    else:
+        record(summary, "ERROR", f"Modo agendado invalido: {mode}")
+    try:
+        from zoneinfo import ZoneInfo
+
+        ZoneInfo(timezone_name)
+        record(summary, "OK", f"Timezone agendado: {timezone_name}")
+    except Exception:
+        record(summary, "ERROR", f"Timezone agendado invalido: {timezone_name}")
+    if _valid_hhmm(schedule_time):
+        record(summary, "OK", f"Horario agendado: {schedule_time}")
+    else:
+        record(summary, "ERROR", f"Horario agendado invalido: {schedule_time}")
+    if recipients:
+        record(summary, "OK", "Destinatarios agendados: " + ", ".join(_redact_email(item) for item in recipients))
+    else:
+        record(summary, "WARN", "Nenhum destinatario agendado configurado.")
+    outside = [item for item in recipients if item not in delivery_recipients]
+    if outside:
+        record(summary, "ERROR", "Destinatario agendado fora da allowlist de delivery: " + ", ".join(_redact_email(item) for item in outside))
+    elif recipients:
+        record(summary, "OK", "Destinatarios agendados estao na allowlist de delivery.")
+    if mode == "send" and not delivery_allow_send:
+        record(summary, "ERROR", "Modo send configurado sem DAILY_BRIEF_DELIVERY_ALLOW_SEND=true.")
+    elif mode == "draft":
+        record(summary, "OK", "Modo draft nao exige permissao de send.")
+
+
+def check_scheduler(summary: CheckSummary, project_id: str, region: str, scheduler_name: str) -> None:
+    if shutil.which("gcloud") is None:
+        record(summary, "WARN", "Cloud Scheduler: gcloud nao encontrado.")
+        return
+    result = run([
+        "gcloud",
+        "scheduler",
+        "jobs",
+        "describe",
+        scheduler_name,
+        "--project",
+        project_id,
+        "--location",
+        region,
+        "--format=value(name)",
+    ])
+    if result.returncode == 0 and scheduler_name in result.stdout:
+        record(summary, "OK", f"Cloud Scheduler existe: {scheduler_name}")
+    else:
+        record(summary, "WARN", f"Cloud Scheduler nao encontrado: {scheduler_name}")
+
+
 def first_line(value: str) -> str:
     return value.strip().splitlines()[0] if value.strip() else ""
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _valid_hhmm(value: str) -> bool:
+    try:
+        hour, minute = [int(part) for part in value.split(":", 1)]
+    except Exception:
+        return False
+    return 0 <= hour <= 23 and 0 <= minute <= 59
+
+
+def _redact_email(value: str) -> str:
+    if "@" not in value:
+        return "(invalid)"
+    local, domain = value.strip().lower().split("@", 1)
+    return f"{local[:2]}***@{domain}"
 
 
 if __name__ == "__main__":

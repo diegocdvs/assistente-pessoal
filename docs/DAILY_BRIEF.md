@@ -78,6 +78,9 @@ O Daily Brief:
 Entrega por e-mail, quando habilitada, e responsabilidade separada de `app/daily_brief_delivery`.
 Consulte `docs/DAILY_BRIEF_DELIVERY.md`.
 
+Execucao diaria agendada, quando habilitada, e responsabilidade separada de `app/scheduled_daily_brief`.
+Consulte `docs/SCHEDULED_DAILY_BRIEF.md`.
+
 ## Futuro
 
 WhatsApp, push notification e Dashboard poderao consumir o mesmo modelo `DailyBrief` em releases posteriores.

@@ -179,6 +179,53 @@ daily_brief_deliveries/{delivery_id}
 
 O corpo do e-mail nao e persistido.
 
+## 7.5 Scheduled Daily Brief
+
+Validacao segura:
+
+```bash
+make scheduled-daily-brief-dry-run
+make scheduled-daily-brief-status
+```
+
+Comandos diretos:
+
+```bash
+python scripts/scheduled_daily_brief.py --trigger test --dry-run --json
+python scripts/scheduled_daily_brief.py --list-recent
+python scripts/double_check.py --scheduled-daily-brief --json
+```
+
+Defaults:
+
+```bash
+DAILY_BRIEF_SCHEDULE_ENABLED=false
+DAILY_BRIEF_SCHEDULE_MODE=draft
+```
+
+Primeira implantacao deve usar draft:
+
+```bash
+DAILY_BRIEF_SCHEDULE_ENABLED=true
+DAILY_BRIEF_SCHEDULE_MODE=draft
+DAILY_BRIEF_DELIVERY_MODE=draft
+DAILY_BRIEF_DELIVERY_ALLOW_SEND=false
+```
+
+Se aparecer `delivery_uncertain`:
+
+1. nao executar novamente com send;
+2. verificar Gmail manualmente;
+3. verificar `scheduled_daily_brief_runs/{idempotency_key}`;
+4. verificar `daily_brief_deliveries/{delivery_id}`;
+5. resolver operacionalmente antes de nova tentativa.
+
+Pausa emergencial:
+
+```bash
+gcloud scheduler jobs pause assistente-pessoal-daily-brief --project agenda-pessoal-projeto --location southamerica-east1
+```
+
 ## 8. Ler logs manualmente
 
 Quando necessario, copie o nome da execucao mostrado pelo smoke e rode:
@@ -423,6 +470,37 @@ Escopos:
 ```text
 https://www.googleapis.com/auth/gmail.compose
 https://www.googleapis.com/auth/gmail.send
+```
+
+## 10.10 Release 0.11 - Scheduled Daily Brief
+
+Validacao local:
+
+```bash
+python -m pytest tests/test_scheduled_daily_brief.py
+python scripts/scheduled_daily_brief.py --help
+python -m scripts.scheduled_daily_brief --help
+```
+
+Validacao Cloud Shell:
+
+```bash
+make validate
+make scheduled-daily-brief-dry-run
+make scheduled-daily-brief-status
+make daily-brief
+make daily-brief-json
+make daily-brief-draft
+make calendar
+make subscriptions
+make double-check
+make release
+```
+
+Setup GCP:
+
+```text
+docs/setup/SCHEDULED_DAILY_BRIEF_GCP_SETUP.md
 ```
 
 ## 11. Erros conhecidos

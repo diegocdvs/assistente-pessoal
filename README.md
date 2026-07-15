@@ -158,6 +158,26 @@ docs/setup/GMAIL_DELIVERY_SETUP.md
 docs/adr/ADR-015-daily-brief-email-delivery.md
 ```
 
+## Release 0.11 - Scheduled Daily Brief Automation
+
+A Release 0.11 transforma o Daily Brief em rotina diaria operacional, desligada por padrao:
+
+- `ScheduledDailyBriefRun` audita execucoes agendadas sem persistir corpo/HTML;
+- `ScheduledDailyBriefService` orquestra ContextSnapshot, DailyBrief, policy, delivery e auditoria;
+- idempotencia por data, timezone, escopo, canal, modo, destinatario e schema;
+- retries nao reenviam entrega confirmada;
+- estado `delivery_uncertain` exige revisao manual;
+- `scripts/scheduled_daily_brief.py` e alvos `make scheduled-daily-brief-*` executam em modo seguro;
+- Cloud Scheduler deve invocar Cloud Run Job autenticado, sem endpoint publico.
+
+Docs:
+
+```text
+docs/SCHEDULED_DAILY_BRIEF.md
+docs/setup/SCHEDULED_DAILY_BRIEF_GCP_SETUP.md
+docs/adr/ADR-016-scheduled-daily-brief-idempotent-job.md
+```
+
 ## Sprint 1.5
 
 A base foi consolidada em um pipeline desacoplado:
@@ -195,6 +215,7 @@ Ele nao instancia `GmailConnector` diretamente.
 - `app/core/report.py`: consolida totais e tempo de execucao.
 - `app/context/*`: gera `ContextSnapshot` a partir dos dados persistidos, sem IA.
 - `app/daily_brief_delivery/*`: entrega opcional do Daily Brief por Gmail com policy, idempotencia e auditoria.
+- `app/scheduled_daily_brief/*`: automacao diaria auditavel e idempotente do Daily Brief.
 - `app/security/*`: analise estatica centralizada para conteudo externo.
 
 ## Modelos
@@ -257,6 +278,17 @@ gmail_message_id, error, created_at, updated_at, metadata, schema_version
 
 O corpo do e-mail do Daily Brief nao e persistido.
 
+`ScheduledDailyBriefRun`:
+
+```text
+run_id, schedule_date, timezone, account_scope, delivery_mode,
+recipient_hash, idempotency_key, status, started_at, finished_at,
+duration_seconds, brief_id, delivery_id, attempt, trigger, error_code,
+error_summary, stage_counts, audit_metadata, schema_version
+```
+
+Destinatario completo, corpo e HTML do brief nao sao persistidos nesse modelo.
+
 Security:
 
 ```text
@@ -312,6 +344,17 @@ DAILY_BRIEF_DELIVERY_MODE=send
 DAILY_BRIEF_DELIVERY_ALLOW_SEND=true
 ```
 
+Scheduled Daily Brief permanece desligado por padrao:
+
+```text
+DAILY_BRIEF_SCHEDULE_ENABLED=false
+DAILY_BRIEF_SCHEDULE_TIME=07:30
+DAILY_BRIEF_SCHEDULE_TIMEZONE=America/Sao_Paulo
+DAILY_BRIEF_SCHEDULE_MODE=draft
+DAILY_BRIEF_SCHEDULE_ACCOUNT_SCOPE=all
+DAILY_BRIEF_SCHEDULE_RECIPIENTS=
+```
+
 ## Classificacao
 
 Categorias:
@@ -349,6 +392,7 @@ accounts/{account_id}/calendar_events/{event_id}
 daily_agendas/{date}
 daily_briefs/{date}:{scope}
 daily_brief_deliveries/{delivery_id}
+scheduled_daily_brief_runs/{idempotency_key}
 ```
 
 A persistencia usa merge/upsert. Emails existentes atualizam `last_seen_at`; emails novos recebem `first_seen_at`. Isso evita duplicacao por `message_id`.
@@ -502,6 +546,23 @@ python scripts/daily_brief_delivery.py --project-id agenda-pessoal-projeto --use
 ```
 
 `daily-brief-draft` cria apenas rascunho quando a policy permitir. `daily-brief-deliver` respeita `DAILY_BRIEF_DELIVERY_MODE`; com defaults seguros, registra `skipped` e nao chama Gmail.
+
+## Scheduled Daily Brief
+
+```bash
+make scheduled-daily-brief-dry-run
+make scheduled-daily-brief-status
+make scheduled-daily-brief
+```
+
+Comandos diretos:
+
+```bash
+python scripts/scheduled_daily_brief.py --trigger test --dry-run --json
+python scripts/scheduled_daily_brief.py --list-recent
+```
+
+`scheduled-daily-brief-dry-run` nunca cria draft nem envia. `scheduled-daily-brief` respeita as flags de schedule/delivery e continua em draft por padrao.
 
 ## Validacao operacional
 

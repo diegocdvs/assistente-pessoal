@@ -214,3 +214,14 @@ Ele nao acessa URLs, nao entra em reunioes, nao abre anexos, nao aceita e nao re
 ## Daily Brief
 
 Daily Brief resume alertas de seguranca ja presentes no `ContextSnapshot`. Ele nao recalcula reputacao externa, nao acessa links e nao transforma alertas em acoes automaticas.
+
+## Scheduled Daily Brief
+
+O agendamento diario adiciona risco de duplicidade e envio indevido. A mitigacao fica em `app/scheduled_daily_brief`:
+
+- acquire idempotente antes de gerar/entregar;
+- destinatario redigido por hash;
+- nenhuma persistencia de corpo/HTML;
+- `delivery_uncertain` sem retry automatico;
+- Cloud Scheduler autenticado sem endpoint publico;
+- modo inicial `draft`.
