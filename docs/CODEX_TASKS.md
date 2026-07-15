@@ -18,6 +18,25 @@ Implementar Daily Brief deterministico:
 Nao usar IA, nao acessar providers e nao executar acoes.
 ```
 
+## Release 0.11 - Scheduled Daily Brief
+
+```text
+Implementar agendamento diario seguro do Daily Brief:
+- ScheduledDailyBriefRun;
+- ScheduledDailyBriefService;
+- idempotencia por data/timezone/scope/canal/modo/recipient/schema;
+- repository in-memory e Firestore;
+- retry policy e delivery_uncertain sem retry automatico;
+- scripts/scheduled_daily_brief.py;
+- make scheduled-daily-brief-dry-run/status;
+- doctor/smoke/double-check;
+- docs/SCHEDULED_DAILY_BRIEF.md;
+- docs/setup/SCHEDULED_DAILY_BRIEF_GCP_SETUP.md;
+- ADR-016.
+
+Nao usar IA, nao criar endpoint publico, nao enviar por padrao.
+```
+
 ## Release 0.8 - Google Calendar Read-Only
 
 ```text

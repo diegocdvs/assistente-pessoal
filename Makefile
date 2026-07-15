@@ -5,7 +5,7 @@ JOB_NAME ?= assistente-pessoal-diario
 SERVICE_ACCOUNT ?= assistente-pessoal-runner@$(PROJECT_ID).iam.gserviceaccount.com
 PYTHON ?= $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; elif [ -x .venv/Scripts/python.exe ]; then echo .venv/Scripts/python.exe; else echo python; fi)
 
-.PHONY: install google-token check-python-deps validate doctor smoke calendar daily-brief daily-brief-json daily-brief-draft daily-brief-deliver subscriptions double-check release deploy run-job list-jobs
+.PHONY: install google-token check-python-deps validate doctor smoke calendar daily-brief daily-brief-json daily-brief-draft daily-brief-deliver scheduled-daily-brief scheduled-daily-brief-dry-run scheduled-daily-brief-status subscriptions double-check release deploy run-job list-jobs
 
 install:
 	$(PYTHON) -m pip install -r requirements.txt
@@ -40,6 +40,15 @@ daily-brief-draft:
 
 daily-brief-deliver:
 	$(PYTHON) scripts/daily_brief_delivery.py --project-id $(PROJECT_ID) --use-last-brief
+
+scheduled-daily-brief:
+	$(PYTHON) scripts/scheduled_daily_brief.py --project-id $(PROJECT_ID) --trigger manual
+
+scheduled-daily-brief-dry-run:
+	$(PYTHON) scripts/scheduled_daily_brief.py --project-id $(PROJECT_ID) --trigger test --dry-run
+
+scheduled-daily-brief-status:
+	$(PYTHON) scripts/scheduled_daily_brief.py --project-id $(PROJECT_ID) --list-recent
 
 subscriptions:
 	$(PYTHON) scripts/subscriptions.py --project-id $(PROJECT_ID) --summary --dry-run

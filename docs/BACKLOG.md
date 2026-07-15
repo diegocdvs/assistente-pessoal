@@ -142,6 +142,21 @@ Objetivo: entregar visao diaria consolidada, deterministica e sem acoes mutaveis
 | 0.9.6 Double Check | Media | brief | auditoria read-only do modelo | Concluido |
 | 0.9.7 Docs/ADR-014 | Media | implementacao | DAILY_BRIEF e ADR criados | Concluido |
 
+## Release 0.11 - Scheduled Daily Brief Automation
+
+Objetivo: entregar Daily Brief diariamente por rotina segura, auditavel e idempotente.
+
+| Task | Prioridade | Dependencia | Criterio de aceite | Status |
+|---|---:|---|---|---|
+| 0.11.1 ScheduledDailyBriefRun | Alta | Delivery 0.10 | modelo auditavel sem corpo/HTML/secret | Concluido |
+| 0.11.2 ScheduledDailyBriefService | Alta | Context/DailyBrief/Delivery | orquestra rotina sem conhecer Scheduler | Concluido |
+| 0.11.3 Idempotency contract | Alta | modelo | chave por data/timezone/scope/canal/modo/recipient/schema | Concluido |
+| 0.11.4 Run Repository | Alta | Firestore | in-memory e Firestore com acquire transacional | Concluido |
+| 0.11.5 Retry e uncertain | Alta | service | nao reenvia delivery incerto | Concluido |
+| 0.11.6 CLI/Makefile | Alta | service | comandos seguros e status | Concluido |
+| 0.11.7 Doctor/Smoke/Double Check | Media | scripts operacionais | validacoes sem envio real | Concluido |
+| 0.11.8 Docs/ADR-016 | Media | implementacao | setup GCP e runbook documentados | Concluido |
+
 ## Sprint 4 - Calendar Intelligence
 
 Objetivo: ler agenda e planejar eventos a partir de e-mails.

@@ -14,6 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from app.communication import SubscriptionDoubleCheck
 from app.context import ContextEngine
 from app.context.store import FirestoreContextRepository
+from app.scheduled_daily_brief import FirestoreScheduledBriefRepository, ScheduledDailyBriefDoubleCheck
 
 
 def main() -> int:
@@ -25,7 +26,32 @@ def main_with_args(argv: list[str] | None) -> int:
     parser.add_argument("--project-id", default="agenda-pessoal-projeto")
     parser.add_argument("--account-id")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--scheduled-daily-brief", action="store_true")
     args = parser.parse_args(argv)
+
+    if args.scheduled_daily_brief:
+        run_repository = FirestoreScheduledBriefRepository(project_id=args.project_id)
+        runs = run_repository.list_recent(limit=50)
+        delivery_ids = {run.delivery_id for run in runs if run.delivery_id}
+        discrepancies = ScheduledDailyBriefDoubleCheck().inspect(runs, delivery_ids=delivery_ids)
+        payload = {
+            "status": "ok" if not discrepancies else "warning",
+            "read_only": True,
+            "scheduled_daily_brief": True,
+            "runs_checked": len(runs),
+            "discrepancies_count": len(discrepancies),
+            "discrepancies": [item.to_dict() for item in discrepancies],
+        }
+        if args.json:
+            print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"status={payload['status']}")
+            print("read_only=true")
+            print(f"runs_checked={payload['runs_checked']}")
+            print(f"discrepancies_count={payload['discrepancies_count']}")
+            for discrepancy in discrepancies:
+                print(f"[{discrepancy.severity}] {discrepancy.type}")
+        return 0
 
     repository = FirestoreContextRepository(project_id=args.project_id)
     account_ids = [args.account_id] if args.account_id else None

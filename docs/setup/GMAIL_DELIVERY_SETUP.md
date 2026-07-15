@@ -70,9 +70,25 @@ DAILY_BRIEF_DELIVERY_ALLOW_SEND=true
 ```bash
 python scripts/daily_brief_delivery.py --project-id agenda-pessoal-projeto --mode draft --dry-run --use-last-brief --json
 make daily-brief-draft
+make scheduled-daily-brief-dry-run
 ```
 
 Se o modo estiver `disabled`, a execucao registra `skipped` e nao chama Gmail.
+
+## Uso com agendamento
+
+O Scheduled Daily Brief usa a mesma capability de delivery, mas possui idempotencia propria antes de chamar Gmail.
+
+Primeiro configure em draft:
+
+```bash
+DAILY_BRIEF_SCHEDULE_ENABLED=true
+DAILY_BRIEF_SCHEDULE_MODE=draft
+DAILY_BRIEF_DELIVERY_MODE=draft
+DAILY_BRIEF_DELIVERY_ALLOW_SEND=false
+```
+
+Promocao posterior para send exige `gmail.send`, allowlist e `DAILY_BRIEF_DELIVERY_ALLOW_SEND=true`.
 
 ## Limites
 

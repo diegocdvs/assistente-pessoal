@@ -170,3 +170,28 @@ Detalhes:
 docs/DAILY_BRIEF_DELIVERY.md
 docs/setup/GMAIL_DELIVERY_SETUP.md
 ```
+
+## Scheduled Daily Brief
+
+Agendamento diario permanece desligado por padrao:
+
+```bash
+DAILY_BRIEF_SCHEDULE_ENABLED=false
+DAILY_BRIEF_SCHEDULE_MODE=draft
+```
+
+Validacao segura:
+
+```bash
+python scripts/scheduled_daily_brief.py --trigger test --dry-run --json
+python -m scripts.scheduled_daily_brief --help
+make scheduled-daily-brief-dry-run
+make scheduled-daily-brief-status
+```
+
+Setup GCP:
+
+```text
+docs/SCHEDULED_DAILY_BRIEF.md
+docs/setup/SCHEDULED_DAILY_BRIEF_GCP_SETUP.md
+```

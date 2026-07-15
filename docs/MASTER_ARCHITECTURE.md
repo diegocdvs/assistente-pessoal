@@ -497,6 +497,7 @@ accounts/{account_id}/calendar_events/{event_id}
 daily_agendas/{date}
 daily_briefs/{date}:{scope}
 daily_brief_deliveries/{delivery_id}
+scheduled_daily_brief_runs/{idempotency_key}
 ```
 
 Campos operacionais importantes:
@@ -781,6 +782,39 @@ Docs:
 ```text
 docs/DAILY_BRIEF_DELIVERY.md
 docs/adr/ADR-015-daily-brief-email-delivery.md
+```
+
+## 12.7 Scheduled Daily Brief
+
+Fluxo operacional:
+
+```text
+Cloud Scheduler
+ -> Cloud Run Job
+ -> ScheduledDailyBriefService
+ -> ContextEngine
+ -> DailyBriefBuilder
+ -> DailyBriefDeliveryService
+ -> Scheduled Run Audit
+```
+
+O Scheduler nao contem regra de negocio. Ele apenas dispara o Job autenticado.
+
+Regras:
+
+- `DAILY_BRIEF_SCHEDULE_ENABLED=false` por padrao;
+- modo padrao `draft`;
+- `send` exige as flags de Daily Brief Delivery;
+- idempotencia considera data, timezone, escopo, canal, modo, destinatario e schema;
+- entrega confirmada nunca e reenviada automaticamente;
+- `delivery_uncertain` exige revisao operacional;
+- corpo/HTML do brief nao sao persistidos na auditoria agendada.
+
+Docs:
+
+```text
+docs/SCHEDULED_DAILY_BRIEF.md
+docs/adr/ADR-016-scheduled-daily-brief-idempotent-job.md
 ```
 
 ## 13. Segurança

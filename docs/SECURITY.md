@@ -23,6 +23,9 @@ Todo dado externo e nao confiavel por padrao. O sistema deve aplicar defesa em p
 - Meeting URLs e links em descricoes de eventos nunca sao acessados automaticamente.
 - Daily Brief nao exibe corpos completos, descricoes completas, URLs completas, tokens ou secrets.
 - Daily Brief nao executa ActionPlans nem envia mensagens.
+- Scheduled Daily Brief deve ser idempotente; retry nunca pode reenviar entrega confirmada.
+- Estado `delivery_uncertain` exige revisao operacional e nao pode ser reenviado automaticamente.
+- Scheduler nao deve expor endpoint publico nem conter regra de negocio.
 
 ## Threat Analyzer alvo
 

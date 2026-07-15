@@ -30,7 +30,11 @@ def main() -> int:
     parser.add_argument("--region", default="southamerica-east1")
     parser.add_argument("--job-name", default="assistente-pessoal-diario")
     parser.add_argument("--account-id", default=DEFAULT_ACCOUNT_ID)
+    parser.add_argument("--scheduled-daily-brief", action="store_true")
     args = parser.parse_args()
+
+    if args.scheduled_daily_brief:
+        return smoke_scheduled_daily_brief(args.project_id)
 
     print("== Executando job ==")
     run_job = run(["make", "run-job"])
@@ -116,6 +120,42 @@ def main() -> int:
 
 def run(command: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, text=True, capture_output=True)
+
+
+def smoke_scheduled_daily_brief(project_id: str) -> int:
+    print("== Scheduled Daily Brief smoke seguro ==")
+    result = run([
+        sys.executable,
+        "scripts/scheduled_daily_brief.py",
+        "--project-id",
+        project_id,
+        "--trigger",
+        "test",
+        "--dry-run",
+        "--json",
+    ])
+    print(result.stdout, end="")
+    print(result.stderr, end="", file=sys.stderr)
+    if result.returncode not in {0, 2}:
+        print("[ERROR] Smoke agendado falhou.")
+        return result.returncode
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        print("[ERROR] Smoke agendado nao retornou JSON valido.")
+        return 1
+    run_payload = payload.get("run") or {}
+    if run_payload.get("delivery_mode") == "send":
+        print("[ERROR] Smoke agendado nao pode usar send.")
+        return 1
+    if run_payload.get("status") in {"delivered"}:
+        print("[ERROR] Smoke agendado seguro nao pode enviar email.")
+        return 1
+    if not run_payload.get("idempotency_key"):
+        print("[ERROR] Smoke agendado sem idempotency_key.")
+        return 1
+    print("[OK] Scheduled Daily Brief smoke seguro validou policy/idempotencia.")
+    return 0
 
 
 class SmokeStatus:
